@@ -2,15 +2,31 @@
 #include "custommessagebox.h"
 #include "rtfconverter.h"
 
+#ifdef Q_OS_WIN
 #include <ActiveQt/QAxObject>
 #include <ActiveQt/QAxWidget>
+#include <qt_windows.h>
+#else
+#include <QEventLoop>
+#include <QJsonDocument>
+#include <QJsonArray>
+#include <QWebChannel>
+#include <QWebEnginePage>
+#include <QWebEngineScript>
+#include <QWebEngineScriptCollection>
+#include <QWebEngineSettings>
+#include <QWebEngineView>
+#endif
 #include <QApplication>
+#include <QColor>
 #include <QDate>
 #include <QDir>
 #include <QEvent>
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QPixmap>
 #include <QPointer>
 #include <QPrintDialog>
@@ -20,7 +36,6 @@
 #include <QTextDocument>
 #include <QTimer>
 #include <QUrl>
-#include <qt_windows.h>
 
 namespace {
 
@@ -164,12 +179,31 @@ const QHash<QString, QPair<QString, QString>> &pharmacologyRules() {
     return rules;
 }
 
+constexpr const char *kAlertOverrideJs =
+    "window.alert = function (m) {"
+    "  var q = document.getElementById('__appAlert');"
+    "  if (!q) {"
+    "    q = document.createElement('textarea');"
+    "    q.id = '__appAlert';"
+    "    q.style.display = 'none';"
+    "    document.body.appendChild(q);"
+    "  }"
+    "  q.value = q.value ? q.value + '\\n' + m : String(m);"
+    "};";
+
+QString jsQuote(const QString &text) {
+    return QString::fromUtf8(QJsonDocument(QJsonArray{text}).toJson(QJsonDocument::Compact))
+        .mid(1)
+        .chopped(1);
+}
+
 } // namespace
 
 ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *parent)
     : QObject(parent)
     , m_panel(panel)
 {
+#ifdef Q_OS_WIN
     m_web = new QAxWidget(m_panel);
     m_web->setControl(kBrowserClsid);
     m_web->setGeometry(16, 51, 937, kBrowserHeight);
@@ -179,6 +213,23 @@ ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *pa
             this, SLOT(onNavigateComplete(IDispatch*,QVariant&)));
     connect(m_web, SIGNAL(DocumentComplete(IDispatch*,QVariant&)),
             this, SLOT(onDocumentComplete(IDispatch*,QVariant&)));
+#else
+    m_web = new QWebEngineView(m_panel);
+    m_web->setGeometry(16, 51, 937, kBrowserHeight);
+    m_web->setAttribute(Qt::WA_NativeWindow);
+    m_web->page()->setBackgroundColor(QColor(0xf0, 0xf0, 0xf0));
+    m_web->settings()->setAttribute(QWebEngineSettings::JavascriptEnabled, true);
+    m_web->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessFileUrls, true);
+    m_web->settings()->setAttribute(QWebEngineSettings::FocusOnNavigationEnabled, true);
+    m_web->settings()->setAttribute(QWebEngineSettings::ShowScrollBars, true);
+    m_bridge = new ClinicalWebBridge(this, this);
+    m_channel = new QWebChannel(m_web->page());
+    m_channel->registerObject(QStringLiteral("bridge"), m_bridge);
+    m_web->page()->setWebChannel(m_channel);
+    connect(m_web, &QWebEngineView::loadStarted, this, &ClinicalBrowserController::onLoadStarted);
+    connect(m_web, &QWebEngineView::urlChanged, this, &ClinicalBrowserController::onUrlChanged);
+    connect(m_web, &QWebEngineView::loadFinished, this, &ClinicalBrowserController::onLoadFinished);
+#endif
 
     const auto makeButton = [this](int x, int y, int w, int h) {
         auto *button = new ImageButton(m_panel);
@@ -311,7 +362,12 @@ void ClinicalBrowserController::openPage(const QString &path) {
     if (!target.contains(QStringLiteral("://"))) {
         target = QUrl::fromLocalFile(target).toString();
     }
+#ifdef Q_OS_WIN
     m_web->dynamicCall("Navigate(const QString&)", target);
+#else
+    m_pageReady = false;
+    m_web->load(QUrl(target));
+#endif
 }
 
 bool ClinicalBrowserController::eventFilter(QObject *watched, QEvent *event) {
@@ -320,11 +376,13 @@ bool ClinicalBrowserController::eventFilter(QObject *watched, QEvent *event) {
     case QEvent::KeyRelease:
     case QEvent::ShortcutOverride:
     case QEvent::InputMethod:
+#ifdef Q_OS_WIN
         // ActiveQt дублирует в Qt каждую клавишу, набранную в IE (QAxClientSite::TranslateAccelerator),
         // и Qt отдаёт её последнему виджету с фокусом — скрытому полю анамнеза.
         if (browserHasFocus()) {
             return true;
         }
+#endif
         break;
     default:
         break;
@@ -336,13 +394,32 @@ bool ClinicalBrowserController::eventFilter(QObject *watched, QEvent *event) {
     return QObject::eventFilter(watched, event);
 }
 
+#ifdef Q_OS_WIN
 void ClinicalBrowserController::onBeforeNavigate(IDispatch *, QVariant &, QVariant &, QVariant &,
                                                  QVariant &, QVariant &, bool &) {
     saveTemplates();
 }
 
 void ClinicalBrowserController::onNavigateComplete(IDispatch *, QVariant &url) {
-    const QString address = url.toString();
+    applyPageAddress(url.toString());
+}
+
+void ClinicalBrowserController::onDocumentComplete(IDispatch *, QVariant &) {
+    delete m_document;
+    m_document = m_web->querySubObject("Document");
+    if (!m_document) {
+        return;
+    }
+    connect(m_document, SIGNAL(onmousedown(IDispatch*)), this, SLOT(onBodyMouseDown(IDispatch*)));
+    connect(m_document, SIGNAL(onclick(IDispatch*)), this, SLOT(onDocumentClick(IDispatch*)));
+    installPageAlert();
+    connect(m_document, SIGNAL(onkeyup(IDispatch*)), this, SLOT(onDocumentEdited(IDispatch*)));
+    connect(m_document, SIGNAL(onfocusout(IDispatch*)), this, SLOT(onDocumentEdited(IDispatch*)));
+    finishDocumentLoad();
+}
+#endif
+
+void ClinicalBrowserController::applyPageAddress(const QString &address) {
     const QString name = pageFileName(address);
     const QString base = name.section(QLatin1Char('.'), 0, 0);
     if (!base.isEmpty() && base.back() >= QLatin1Char('1') && base.back() <= QLatin1Char('5')) {
@@ -426,17 +503,8 @@ void ClinicalBrowserController::onNavigateComplete(IDispatch *, QVariant &url) {
     }
 }
 
-void ClinicalBrowserController::onDocumentComplete(IDispatch *, QVariant &) {
-    delete m_document;
-    m_document = m_web->querySubObject("Document");
-    if (!m_document) {
-        return;
-    }
-    connect(m_document, SIGNAL(onmousedown(IDispatch*)), this, SLOT(onBodyMouseDown(IDispatch*)));
-    connect(m_document, SIGNAL(onclick(IDispatch*)), this, SLOT(onDocumentClick(IDispatch*)));
+void ClinicalBrowserController::finishDocumentLoad() {
     installPageAlert();
-    connect(m_document, SIGNAL(onkeyup(IDispatch*)), this, SLOT(onDocumentEdited(IDispatch*)));
-    connect(m_document, SIGNAL(onfocusout(IDispatch*)), this, SLOT(onDocumentEdited(IDispatch*)));
     loadTemplates();
     placeResultButtons();
     // Скрипт страницы перестраивает выпадающие списки после onload — таблица меняет высоту.
@@ -453,14 +521,7 @@ void ClinicalBrowserController::placeResultButtons() {
     if (m_pageName != QLatin1String("1") && m_pageName != QLatin1String("2") && m_pageName != QLatin1String("4")) {
         return;
     }
-    const auto verdict = element(QStringLiteral("idv"));
-    if (!verdict) {
-        return;
-    }
-    std::unique_ptr<QAxObject> rect(verdict->querySubObject("getBoundingClientRect()"));
-    std::unique_ptr<QAxObject> root(m_document->querySubObject("documentElement"));
-    const int scrollTop = root ? root->property("scrollTop").toInt() : 0;
-    const int bottom = rect ? qRound(rect->property("bottom").toDouble()) + scrollTop : 0;
+    const int bottom = elementBottom(QStringLiteral("idv"));
     if (bottom <= 0) {
         return;
     }
@@ -471,51 +532,64 @@ void ClinicalBrowserController::placeResultButtons() {
 }
 
 void ClinicalBrowserController::installPageAlert() {
+#ifdef Q_OS_WIN
+    if (!m_document) {
+        return;
+    }
     std::unique_ptr<QAxObject> window(m_document->querySubObject("parentWindow"));
     if (!window) {
         return;
     }
-    // alert() страницы копится в скрытом поле и показывается окном программы после клика.
-    window->dynamicCall("execScript(QString,QString)",
-                        QStringLiteral(
-                            "window.alert = function (m) {"
-                            "  var q = document.getElementById('__appAlert');"
-                            "  if (!q) {"
-                            "    q = document.createElement('textarea');"
-                            "    q.id = '__appAlert';"
-                            "    q.style.display = 'none';"
-                            "    document.body.appendChild(q);"
-                            "  }"
-                            "  q.value = q.value ? q.value + '\\n' + m : String(m);"
-                            "};"),
+    window->dynamicCall("execScript(QString,QString)", QString::fromLatin1(kAlertOverrideJs),
                         QStringLiteral("JavaScript"));
+#else
+    evalJs(QString::fromLatin1(kAlertOverrideJs));
+#endif
 }
 
 void ClinicalBrowserController::flushPageAlerts() {
-    const auto queue = element(QStringLiteral("__appAlert"));
-    if (!queue) {
+    if (!elementExists(QStringLiteral("__appAlert"))) {
         return;
     }
-    const QString raw = normalizeText(queue->property("value").toString()).trimmed();
+    const QString raw = normalizeText(valueOf(QStringLiteral("__appAlert"))).trimmed();
     if (raw.isEmpty()) {
         return;
     }
-    queue->setProperty("value", QString());
+#ifdef Q_OS_WIN
+    if (const auto queue = element(QStringLiteral("__appAlert"))) {
+        queue->setProperty("value", QString());
+    }
+#else
+    evalJs(QStringLiteral("(function(){ var q=document.getElementById('__appAlert'); if(q) q.value=''; })()"));
+#endif
     QString text = raw;
     text.remove(QRegularExpression(QStringLiteral("^Ошибка!\\s*"), QRegularExpression::MultilineOption));
     QPointer<QWidget> panel = m_panel;
     QTimer::singleShot(0, this, [panel, text]() { CustomMessageBox::showWarning(panel, text); });
 }
 
+bool ClinicalBrowserController::documentReady() const {
+#ifdef Q_OS_WIN
+    return m_document != nullptr;
+#else
+    return m_pageReady;
+#endif
+}
+
 bool ClinicalBrowserController::browserHasFocus() const {
     if (!m_web || !m_web->isVisible()) {
         return false;
     }
+#ifdef Q_OS_WIN
     const HWND focus = ::GetFocus();
     const HWND browser = reinterpret_cast<HWND>(m_web->winId());
     return focus && focus != browser && ::IsChild(browser, focus);
+#else
+    return m_web->hasFocus();
+#endif
 }
 
+#ifdef Q_OS_WIN
 void ClinicalBrowserController::onDocumentClick(IDispatch *) {
     flushPageAlerts();
 }
@@ -530,30 +604,90 @@ std::unique_ptr<QAxObject> ClinicalBrowserController::element(const QString &id)
     }
     return std::unique_ptr<QAxObject>(m_document->querySubObject("getElementById(QString)", id));
 }
+#endif
+
+bool ClinicalBrowserController::elementExists(const QString &id) const {
+    if (id.isEmpty() || !documentReady()) {
+        return false;
+    }
+#ifdef Q_OS_WIN
+    return static_cast<bool>(element(id));
+#else
+    return evalJs(QStringLiteral("document.getElementById(%1) ? '1' : '0'").arg(jsQuote(id))).toString()
+        == QLatin1String("1");
+#endif
+}
+
+int ClinicalBrowserController::elementBottom(const QString &id) const {
+    if (!elementExists(id)) {
+        return 0;
+    }
+#ifdef Q_OS_WIN
+    const auto verdict = element(id);
+    std::unique_ptr<QAxObject> rect(verdict->querySubObject("getBoundingClientRect()"));
+    std::unique_ptr<QAxObject> root(m_document->querySubObject("documentElement"));
+    const int scrollTop = root ? root->property("scrollTop").toInt() : 0;
+    return rect ? qRound(rect->property("bottom").toDouble()) + scrollTop : 0;
+#else
+    return evalJs(QStringLiteral(
+                      "(function(){ var e=document.getElementById(%1); if(!e) return 0;"
+                      " var r=e.getBoundingClientRect();"
+                      " var st=document.documentElement.scrollTop||document.body.scrollTop||0;"
+                      " return Math.round(r.bottom+st); })()")
+                      .arg(jsQuote(id)))
+        .toInt();
+#endif
+}
 
 QString ClinicalBrowserController::innerText(const QString &id) const {
+#ifdef Q_OS_WIN
     const auto el = element(id);
     return el ? el->property("innerText").toString() : QString();
+#else
+    return evalJs(QStringLiteral(
+                      "(function(){ var e=document.getElementById(%1); if(!e) return '';"
+                      " return e.innerText != null ? e.innerText : (e.textContent || ''); })()")
+                      .arg(jsQuote(id)))
+        .toString();
+#endif
 }
 
 QString ClinicalBrowserController::innerHtml(const QString &id) const {
+#ifdef Q_OS_WIN
     const auto el = element(id);
     return el ? el->property("innerHTML").toString() : QString();
+#else
+    return evalJs(QStringLiteral(
+                      "(function(){ var e=document.getElementById(%1); return e ? e.innerHTML : ''; })()")
+                      .arg(jsQuote(id)))
+        .toString();
+#endif
 }
 
 void ClinicalBrowserController::setInnerHtml(const QString &id, const QString &html) {
+#ifdef Q_OS_WIN
     if (const auto el = element(id)) {
         el->setProperty("innerHTML", html);
     }
+#else
+    evalJs(QStringLiteral("(function(){ var e=document.getElementById(%1); if(e) e.innerHTML=%2; })()")
+               .arg(jsQuote(id), jsQuote(html)));
+#endif
 }
 
 void ClinicalBrowserController::setInnerText(const QString &id, const QString &text) {
+#ifdef Q_OS_WIN
     if (const auto el = element(id)) {
         el->setProperty("innerText", text);
     }
+#else
+    evalJs(QStringLiteral("(function(){ var e=document.getElementById(%1); if(e) e.innerText=%2; })()")
+               .arg(jsQuote(id), jsQuote(text)));
+#endif
 }
 
 QString ClinicalBrowserController::valueOf(const QString &id) const {
+#ifdef Q_OS_WIN
     const auto el = element(id);
     if (!el) {
         return {};
@@ -566,14 +700,33 @@ QString ClinicalBrowserController::valueOf(const QString &id) const {
         return el->property("value").toString();
     }
     return el->dynamicCall("getAttribute(QString)", QStringLiteral("value")).toString();
+#else
+    return evalJs(QStringLiteral(
+                      "(function(){ var e=document.getElementById(%1); if(!e) return '';"
+                      " var t=(e.tagName||'').toUpperCase();"
+                      " if(t==='INPUT'||t==='SELECT'||t==='TEXTAREA'||t==='BUTTON'||t==='OPTION'||t==='TEXTAREA')"
+                      " return e.value != null ? String(e.value) : '';"
+                      " var a=e.getAttribute('value'); return a != null ? String(a) : ''; })()")
+                      .arg(jsQuote(id)))
+        .toString();
+#endif
 }
 
 bool ClinicalBrowserController::isChecked(const QString &id) const {
+#ifdef Q_OS_WIN
     const auto el = element(id);
     return el && el->property("checked").toBool();
+#else
+    return evalJs(QStringLiteral(
+                      "(function(){ var e=document.getElementById(%1); return (e && e.checked) ? '1' : '0'; })()")
+                      .arg(jsQuote(id)))
+               .toString()
+        == QLatin1String("1");
+#endif
 }
 
 void ClinicalBrowserController::setStyle(const QString &id, const QString &css) {
+#ifdef Q_OS_WIN
     const auto el = element(id);
     if (!el) {
         return;
@@ -581,6 +734,10 @@ void ClinicalBrowserController::setStyle(const QString &id, const QString &css) 
     if (QAxObject *style = el->querySubObject("style")) {
         style->setProperty("cssText", css);
     }
+#else
+    evalJs(QStringLiteral("(function(){ var e=document.getElementById(%1); if(e) e.style.cssText=%2; })()")
+               .arg(jsQuote(id), jsQuote(css)));
+#endif
 }
 
 bool ClinicalBrowserController::templateSpec(TemplateSpec *spec) const {
@@ -658,16 +815,16 @@ void ClinicalBrowserController::loadTemplates() {
 void ClinicalBrowserController::saveTemplates() {
     m_templateSaveTimer->stop();
     TemplateSpec spec;
-    if (!m_document || !templateSpec(&spec)) {
+    if (!documentReady() || !templateSpec(&spec)) {
         return;
     }
     QString content;
     for (int i = 1; i <= spec.count; ++i) {
-        const auto el = element(spec.idPrefix + QString::number(i));
-        if (!el) {
+        const QString id = spec.idPrefix + QString::number(i);
+        if (!elementExists(id)) {
             return;
         }
-        content += el->property("innerText").toString() + QLatin1Char(';');
+        content += innerText(id) + QLatin1Char(';');
     }
     const QByteArray bytes = content.toUtf8() + "\r\n";
     const QString path = templatePath(spec.fileName);
@@ -722,6 +879,7 @@ void ClinicalBrowserController::printRtf(const QString &fileName) {
     });
 }
 
+#ifdef Q_OS_WIN
 void ClinicalBrowserController::onBodyMouseDown(IDispatch *event) {
     if (!event || !m_document) {
         return;
@@ -736,18 +894,21 @@ void ClinicalBrowserController::onBodyMouseDown(IDispatch *event) {
         return;
     }
     const QString id = source->property("id").toString();
+    std::unique_ptr<QAxObject> parent(source->querySubObject("parentElement"));
+    const QString parentTag = parent ? parent->property("tagName").toString() : QString();
+    const QString parentText = parent ? parent->property("innerText").toString() : QString();
     if (m_section == Section::Speech) {
         const QString src = source->dynamicCall("getAttribute(QString)", QStringLiteral("src")).toString();
-        handleSpeechClick(id, src, source.get());
+        handleSpeechClick(id, src, parentText);
         return;
     }
-    handleClick(id, source.get());
+    handleClick(id, parentTag);
 }
+#endif
 
-void ClinicalBrowserController::handleSpeechClick(const QString &id, const QString &src, QAxObject *element) {
+void ClinicalBrowserController::handleSpeechClick(const QString &id, const QString &src, const QString &parentText) {
     if (src.contains(QStringLiteral("plust"))) {
-        std::unique_ptr<QAxObject> parent(element->querySubObject("parentElement"));
-        const QString title = parent ? normalizeText(parent->property("innerText").toString()).trimmed() : QString();
+        const QString title = normalizeText(parentText).trimmed();
         if (!title.isEmpty()) {
             appendTo(SummaryPanel::Speech, today() + QLatin1Char(' ') + title);
         }
@@ -759,7 +920,7 @@ void ClinicalBrowserController::handleSpeechClick(const QString &id, const QStri
     }
 }
 
-void ClinicalBrowserController::handleClick(const QString &id, QAxObject *element) {
+void ClinicalBrowserController::handleClick(const QString &id, const QString &parentTag) {
     if (id.isEmpty()) {
         return;
     }
@@ -775,8 +936,7 @@ void ClinicalBrowserController::handleClick(const QString &id, QAxObject *elemen
         return;
     }
     if (id == QLatin1String("tmp35")) {
-        std::unique_ptr<QAxObject> parent(element->querySubObject("parentElement"));
-        const bool extraSection = parent && parent->property("tagName").toString().compare(QStringLiteral("TD"), Qt::CaseInsensitive) == 0;
+        const bool extraSection = parentTag.compare(QStringLiteral("TD"), Qt::CaseInsensitive) == 0;
         if (extraSection) {
             appendTemplate(SummaryPanel::Mp, normalizeText(innerText(QStringLiteral("idText5"))).trimmed(), QStringLiteral("idText6"));
         } else {
@@ -898,7 +1058,7 @@ void ClinicalBrowserController::handleClick(const QString &id, QAxObject *elemen
 }
 
 void ClinicalBrowserController::runItog() {
-    if (!m_document) {
+    if (!documentReady()) {
         return;
     }
     if (m_pageName == QLatin1String("1") || m_pageName == QLatin1String("2")) {
@@ -974,7 +1134,7 @@ void ClinicalBrowserController::runItog() {
 }
 
 void ClinicalBrowserController::runPlus() {
-    if (!m_document) {
+    if (!documentReady()) {
         return;
     }
     const QString sum = htmlToPlain(innerHtml(QStringLiteral("idsum")));
@@ -994,3 +1154,135 @@ void ClinicalBrowserController::runPlus() {
                                          + sum + QStringLiteral(" баллов. ") + verdict);
     }
 }
+
+#ifndef Q_OS_WIN
+
+ClinicalWebBridge::ClinicalWebBridge(ClinicalBrowserController *host, QObject *parent)
+    : QObject(parent)
+    , m_host(host) {}
+
+void ClinicalWebBridge::mouseDown(const QString &id, const QString &src, const QString &parentTag,
+                                  const QString &parentText, int button) {
+    if (m_host) {
+        m_host->onWebMouseDown(id, src, parentTag, parentText, button);
+    }
+}
+
+void ClinicalWebBridge::clicked() {
+    if (m_host) {
+        m_host->onWebClicked();
+    }
+}
+
+void ClinicalWebBridge::edited() {
+    if (m_host) {
+        m_host->onWebEdited();
+    }
+}
+
+QVariant ClinicalBrowserController::evalJs(const QString &script) const {
+    if (!m_web || !m_web->page()) {
+        return {};
+    }
+    QVariant result;
+    QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
+    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    const_cast<QWebEngineView *>(m_web)->page()->runJavaScript(script, [&](const QVariant &value) {
+        result = value;
+        loop.quit();
+    });
+    timer.start(4000);
+    loop.exec();
+    return result;
+}
+
+void ClinicalBrowserController::injectLinuxBridge() {
+    static const QString script = QStringLiteral(
+        "(function(){"
+        "function startChannel(){"
+        "  if(!window.qt||!qt.webChannelTransport){setTimeout(startChannel,20);return;}"
+        "  new QWebChannel(qt.webChannelTransport,function(channel){"
+        "    window.sunriseBridge=channel.objects.bridge;"
+        "  });"
+        "}"
+        "function loadChannel(){"
+        "  if(typeof QWebChannel==='function'){startChannel();return;}"
+        "  var s=document.createElement('script');"
+        "  s.src='qrc:///qtwebchannel/qwebchannel.js';"
+        "  s.onload=startChannel;"
+        "  document.documentElement.appendChild(s);"
+        "}"
+        "function info(el){"
+        "  var t=el,id=(t&&t.id)?t.id:'';"
+        "  if(!id){var p=t;while(p&&p!==document.body){if(p.id){id=p.id;break;}p=p.parentElement;}}"
+        "  var src=(t&&t.getAttribute)?(t.getAttribute('src')||''):'';"
+        "  var parent=t&&t.parentElement;"
+        "  return {id:id,src:src,parentTag:parent?parent.tagName:'',"
+        "          parentText:parent?(parent.innerText||parent.textContent||''):''};"
+        "}"
+        "if(!window.__sunriseBound){"
+        "  window.__sunriseBound=true;"
+        "  document.addEventListener('mousedown',function(e){"
+        "    if(e.button!==0&&e.button!==1)return;"
+        "    var x=info(e.target);"
+        "    if(window.sunriseBridge)sunriseBridge.mouseDown(x.id,x.src,x.parentTag,x.parentText,e.button);"
+        "  },true);"
+        "  document.addEventListener('click',function(){if(window.sunriseBridge)sunriseBridge.clicked();},true);"
+        "  document.addEventListener('keyup',function(){if(window.sunriseBridge)sunriseBridge.edited();},true);"
+        "  document.addEventListener('focusout',function(){if(window.sunriseBridge)sunriseBridge.edited();},true);"
+        "}"
+        "loadChannel();"
+        "})();");
+    evalJs(script);
+}
+
+void ClinicalBrowserController::onLoadStarted() {
+    m_pageReady = false;
+    saveTemplates();
+}
+
+void ClinicalBrowserController::onUrlChanged(const QUrl &url) {
+    const QString address = url.toString();
+    if (address.isEmpty() || address == QLatin1String("about:blank")) {
+        return;
+    }
+    applyPageAddress(address);
+}
+
+void ClinicalBrowserController::onLoadFinished(bool ok) {
+    m_pageReady = ok;
+    if (!ok) {
+        return;
+    }
+    injectLinuxBridge();
+    finishDocumentLoad();
+    QTimer::singleShot(150, this, [this, address = m_address]() {
+        if (m_address == address) {
+            injectLinuxBridge();
+        }
+    });
+}
+
+void ClinicalBrowserController::onWebMouseDown(const QString &id, const QString &src, const QString &parentTag,
+                                               const QString &parentText, int button) {
+    if (button != 0 && button != 1) {
+        return;
+    }
+    if (m_section == Section::Speech) {
+        handleSpeechClick(id, src, parentText);
+        return;
+    }
+    handleClick(id, parentTag);
+}
+
+void ClinicalBrowserController::onWebClicked() {
+    flushPageAlerts();
+}
+
+void ClinicalBrowserController::onWebEdited() {
+    m_templateSaveTimer->start();
+}
+
+#endif

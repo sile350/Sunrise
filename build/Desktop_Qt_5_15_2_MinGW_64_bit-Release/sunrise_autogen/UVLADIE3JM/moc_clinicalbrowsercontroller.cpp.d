@@ -3,6 +3,7 @@ D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunris
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QObject \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QString \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QStringList \
+  D:/Qt/5.15.2/mingw81_64/include/QtCore/QUrl \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QVariant \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QVector \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qalgorithms.h \
@@ -59,6 +60,7 @@ D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunris
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qsystemdetection.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qtcore-config.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qtypeinfo.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtCore/qurl.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qvariant.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qvarlengtharray.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qvector.h \

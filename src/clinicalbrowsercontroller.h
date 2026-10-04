@@ -6,15 +6,38 @@
 
 #include <QObject>
 #include <QString>
+#include <QUrl>
 #include <QVariant>
 #include <functional>
 #include <memory>
 
-class QAxObject;
-class QAxWidget;
 class QTimer;
 class QWidget;
+
+#ifdef Q_OS_WIN
+class QAxObject;
+class QAxWidget;
 struct IDispatch;
+#else
+class QWebEngineView;
+class QWebChannel;
+class ClinicalBrowserController;
+
+class ClinicalWebBridge final : public QObject {
+    Q_OBJECT
+public:
+    explicit ClinicalWebBridge(ClinicalBrowserController *host, QObject *parent = nullptr);
+
+public slots:
+    void mouseDown(const QString &id, const QString &src, const QString &parentTag,
+                   const QString &parentText, int button);
+    void clicked();
+    void edited();
+
+private:
+    ClinicalBrowserController *m_host = nullptr;
+};
+#endif
 
 // pagemanager: один WebBrowser (IE) для вкладок оценки риска, коррекции, речи, гимнастики и терапии.
 class ClinicalBrowserController final : public QObject {
@@ -41,6 +64,7 @@ signals:
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
+#ifdef Q_OS_WIN
 private slots:
     void onBeforeNavigate(IDispatch *frame, QVariant &url, QVariant &flags, QVariant &target,
                           QVariant &postData, QVariant &headers, bool &cancel);
@@ -49,6 +73,18 @@ private slots:
     void onBodyMouseDown(IDispatch *event);
     void onDocumentClick(IDispatch *event);
     void onDocumentEdited(IDispatch *event);
+#else
+private slots:
+    void onLoadStarted();
+    void onUrlChanged(const QUrl &url);
+    void onLoadFinished(bool ok);
+    void onWebMouseDown(const QString &id, const QString &src, const QString &parentTag,
+                        const QString &parentText, int button);
+    void onWebClicked();
+    void onWebEdited();
+
+    friend class ClinicalWebBridge;
+#endif
 
 private:
     struct TemplateSpec {
@@ -60,6 +96,8 @@ private:
     };
 
     void openPage(const QString &path);
+    void applyPageAddress(const QString &address);
+    void finishDocumentLoad();
     void setHelpIndex(const QString &help);
     void setBackImage(const QString &name);
     void setBrowserHeight(int height);
@@ -67,8 +105,8 @@ private:
     void placeResultButtons();
     void runItog();
     void runPlus();
-    void handleSpeechClick(const QString &id, const QString &src, QAxObject *element);
-    void handleClick(const QString &id, QAxObject *element);
+    void handleSpeechClick(const QString &id, const QString &src, const QString &parentText);
+    void handleClick(const QString &id, const QString &parentTag);
     void loadTemplates();
     bool templateSpec(TemplateSpec *spec) const;
     QString templatePath(const QString &fileName) const;
@@ -79,8 +117,8 @@ private:
     void installPageAlert();
     void flushPageAlerts();
     bool browserHasFocus() const;
+    bool documentReady() const;
 
-    std::unique_ptr<QAxObject> element(const QString &id) const;
     QString innerText(const QString &id) const;
     QString innerHtml(const QString &id) const;
     void setInnerHtml(const QString &id, const QString &html);
@@ -88,10 +126,26 @@ private:
     QString valueOf(const QString &id) const;
     bool isChecked(const QString &id) const;
     void setStyle(const QString &id, const QString &css);
+    bool elementExists(const QString &id) const;
+    int elementBottom(const QString &id) const;
+
+#ifdef Q_OS_WIN
+    std::unique_ptr<QAxObject> element(const QString &id) const;
+#else
+    QVariant evalJs(const QString &script) const;
+    void injectLinuxBridge();
+#endif
 
     QWidget *m_panel = nullptr;
+#ifdef Q_OS_WIN
     QAxWidget *m_web = nullptr;
     QAxObject *m_document = nullptr;
+#else
+    QWebEngineView *m_web = nullptr;
+    ClinicalWebBridge *m_bridge = nullptr;
+    QWebChannel *m_channel = nullptr;
+    bool m_pageReady = false;
+#endif
     SummaryPanel *m_summary = nullptr;
     ImageButton *m_backBtn = nullptr;
     ImageButton *m_itogBtn = nullptr;

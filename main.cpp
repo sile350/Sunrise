@@ -11,6 +11,9 @@
 #include <QFile>
 #include <QIcon>
 #include <QProxyStyle>
+#ifdef Q_OS_LINUX
+#include <QtWebEngine/qtwebengineglobal.h>
+#endif
 
 namespace {
 
@@ -49,7 +52,14 @@ int main(int argc, char *argv[])
     QApplication::setAttribute(Qt::AA_DisableHighDpiScaling);
     QApplication::setAttribute(Qt::AA_Use96Dpi);
 #endif
+#ifdef Q_OS_WIN
     QApplication::setAttribute(Qt::AA_DontCreateNativeWidgetSiblings);
+#endif
+#ifdef Q_OS_LINUX
+    QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+    qputenv("QTWEBENGINE_DISABLE_SANDBOX", "1");
+    QtWebEngine::initialize();
+#endif
     QApplication a(argc, argv);
     a.setStyle(new AppStyle);
     a.setApplicationName(QStringLiteral("Санрайс"));

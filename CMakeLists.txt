@@ -14,6 +14,9 @@ find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network PrintSupp
 if(WIN32)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS AxContainer)
 endif()
+if(UNIX AND NOT APPLE)
+    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS WebEngine WebEngineWidgets WebChannel)
+endif()
 
 set(PROJECT_SOURCES
         main.cpp
@@ -91,6 +94,12 @@ target_link_libraries(sunrise PRIVATE
 if(WIN32)
     target_link_libraries(sunrise PRIVATE Qt${QT_VERSION_MAJOR}::AxContainer)
 endif()
+if(UNIX AND NOT APPLE)
+    target_link_libraries(sunrise PRIVATE
+        Qt${QT_VERSION_MAJOR}::WebEngine
+        Qt${QT_VERSION_MAJOR}::WebEngineWidgets
+        Qt${QT_VERSION_MAJOR}::WebChannel)
+endif()
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
   set(BUNDLE_ID_OPTION MACOSX_BUNDLE_GUI_IDENTIFIER com.dokitlab.sunrise)
@@ -120,7 +129,20 @@ if(UNIX AND NOT APPLE)
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${CMAKE_CURRENT_SOURCE_DIR}/assets"
             "$<TARGET_FILE_DIR:sunrise>/assets"
-        COMMENT "Copying sunrise assets next to executable"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/source.txt"
+            "$<TARGET_FILE_DIR:sunrise>/source.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/updates.txt"
+            "$<TARGET_FILE_DIR:sunrise>/updates.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/aJournal.rtf"
+            "$<TARGET_FILE_DIR:sunrise>/aJournal.rtf"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:sunrise>/data"
+            "$<TARGET_FILE_DIR:sunrise>/data/scans"
+            "$<TARGET_FILE_DIR:sunrise>/key"
+        COMMENT "Copying sunrise assets and creating data/key next to executable"
     )
 endif()
 

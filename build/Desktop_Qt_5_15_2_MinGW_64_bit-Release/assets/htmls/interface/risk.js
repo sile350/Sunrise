@@ -11,7 +11,23 @@ function rsInit() {
 	for (var j = 0; j < list.length; j++) rsWrap(list[j]);
 	rsSync();
 	setInterval(rsSync, 150);
-	document.attachEvent("onmousedown", rsOutside);
+	rsListen(document, "mousedown", rsOutside);
+}
+
+function rsListen(el, type, fn) {
+	if (el.attachEvent) el.attachEvent("on" + type, fn);
+	else el.addEventListener(type, fn, false);
+}
+
+function rsFireChange(sel) {
+	if (sel.fireEvent) {
+		sel.fireEvent("onchange");
+		return;
+	}
+	if (sel.onchange) sel.onchange();
+	if (typeof Event === "function") {
+		sel.dispatchEvent(new Event("change", { bubbles: true }));
+	}
 }
 
 function rsWrap(sel) {
@@ -69,7 +85,7 @@ function rsPick(w, index) {
 	w.sel.selectedIndex = index;
 	rsClose(w);
 	rsSync();
-	if (changed) w.sel.fireEvent("onchange");
+	if (changed) rsFireChange(w.sel);
 }
 
 function rsClose(w) {
@@ -85,8 +101,9 @@ function rsCloseAll() {
 	}
 }
 
-function rsOutside() {
-	var node = window.event ? window.event.srcElement : null;
+function rsOutside(e) {
+	var ev = e || window.event;
+	var node = ev ? (ev.srcElement || ev.target) : null;
 	while (node) {
 		if (node.className && (" " + node.className + " ").indexOf(" rsel ") >= 0) return;
 		if (node.className && (" " + node.className + " ").indexOf(" rsel-open ") >= 0) return;
@@ -113,4 +130,6 @@ function rsEscape(s) {
 	return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-window.attachEvent("onload", rsInit);
+if (window.attachEvent) window.attachEvent("onload", rsInit);
+else if (window.addEventListener) window.addEventListener("load", rsInit, false);
+else window.onload = rsInit;
