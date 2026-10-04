@@ -15,26 +15,26 @@ if(WIN32)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS AxContainer)
 endif()
 if(UNIX AND NOT APPLE)
-    # На Astra часто нет Qt5WebEngineConfig.cmake — достаточно WebEngineWidgets.
-    # Если и его нет, собираемся с Qt WebKit (libqt5webkit5-dev).
-    find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS WebEngineWidgets WebChannel)
-    if(Qt${QT_VERSION_MAJOR}WebEngineWidgets_FOUND)
-        set(SUNRISE_LINUX_WEB ENGINE)
-        message(STATUS "Sunrise Linux browser: Qt WebEngineWidgets")
+    # WebKit предпочтительнее: синхронный JS без QEventLoop, страницы лёгкие.
+    # WebEngine на Astra тяжёлый и падает при блокирующих вызовах из QWebChannel.
+    find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS WebKitWidgets)
+    if(Qt${QT_VERSION_MAJOR}WebKitWidgets_FOUND)
+        set(SUNRISE_LINUX_WEB WEBKIT)
+        message(STATUS "Sunrise Linux browser: Qt WebKitWidgets")
     else()
-        find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS WebKitWidgets)
-        if(Qt${QT_VERSION_MAJOR}WebKitWidgets_FOUND)
-            set(SUNRISE_LINUX_WEB WEBKIT)
-            message(STATUS "Sunrise Linux browser: Qt WebKitWidgets")
+        find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS WebEngineWidgets WebChannel)
+        if(Qt${QT_VERSION_MAJOR}WebEngineWidgets_FOUND)
+            set(SUNRISE_LINUX_WEB ENGINE)
+            message(STATUS "Sunrise Linux browser: Qt WebEngineWidgets (тяжёлый fallback)")
         endif()
     endif()
     if(NOT SUNRISE_LINUX_WEB)
         message(FATAL_ERROR
             "Не найден браузерный модуль Qt.\n"
-            "Установите один из пакетов и повторите cmake:\n"
-            "  sudo apt install qtwebengine5-dev libqt5webchannel5-dev\n"
-            "или:\n"
-            "  sudo apt install libqt5webkit5-dev")
+            "Рекомендуется (быстрее и стабильнее на Astra):\n"
+            "  sudo apt install libqt5webkit5-dev\n"
+            "или fallback:\n"
+            "  sudo apt install qtwebengine5-dev libqt5webchannel5-dev")
     endif()
 endif()
 

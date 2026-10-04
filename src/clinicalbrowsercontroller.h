@@ -154,6 +154,8 @@ private:
 #endif
     ClinicalWebBridge *m_bridge = nullptr;
     bool m_pageReady = false;
+    mutable bool m_bridgeBusy = false;
+    int m_loadGeneration = 0;
 #endif
     SummaryPanel *m_summary = nullptr;
     ImageButton *m_backBtn = nullptr;
