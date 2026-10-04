@@ -1,0 +1,34 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Документ без названия</title>
+<link rel="stylesheet" type="text/css" href="risk.css" />
+<script type="text/javascript" src="risk.js"></script>
+<script type="text/javascript" src="next1.js"></script>
+</head>
+
+<body>
+<div class="ptitle">Шкала оценки риска повторного инсульта</div>
+<div class="psub"><b>Essen Stroke Risk Score (ESRS)</b></div>
+<div class="hint">
+<p>В колонке <b>«Выбор»</b>, при помощи выпадающих меню, выбрать нужные данные. Нажать кнопку <b>«Подвести итог»</b> для заполнения ячейки <b>«Вывод»</b>.</p>
+<p>Для добавления результата из ячейки <b>«Вывод»</b> в персональную программу индивидуализированной вторичной профилактики повторного сосудистого события пациента нажать на кнопку <b>«+»</b>.</p>
+<p>С подробной информацией можно ознакомиться в <span class="ulink">руководстве пользователя</span>.</p>
+</div>
+<table class="rtable">
+<tr><td class="th">Факторы риска</td><td class="th sel">Выбор</td><td class="th pts">Баллы</td></tr>
+<tr><td>Возраст</td><td class="sel"><select onchange="elChange(this)" id='ids1'><option></option><option value='0'>&lt; 65 лет</option><option value='1'>65-75</option><option value='2'>&gt; 75 лет</option></select></td><td class="pts" id='idbls1'></td></tr>
+<tr><td>Артериальная гипертензия</td><td class="sel"><select onchange="elChange(this)" id='ids2'><option></option><option value='1'>Да</option><option value='0'>Нет</option></select></td><td class="pts" id='idbls2'></td></tr>
+<tr><td>Сахарный диабет</td><td class="sel"><select onchange="elChange(this)" id='ids3'><option></option><option value='1'>Да</option><option value='0'>Нет</option></select></td><td class="pts" id='idbls3'></td></tr>
+<tr><td>Инфаркт миокарда</td><td class="sel"><select onchange="elChange(this)" id='ids4'><option></option><option value='1'>Да</option><option value='0'>Нет</option></select></td><td class="pts" id='idbls4'></td></tr>
+<tr><td>Другие сердечно-сосудистые заболевания (ИБС, сердечная недостаточность, желудочковая аритмия). За исключением ИМ и фибрилляции предсердий</td><td class="sel"><select onchange="elChange(this)" id='ids5'><option></option><option value='1'>Да</option><option value='0'>Нет</option></select></td><td class="pts" id='idbls5'></td></tr>
+<tr><td>Заболевания периферических артерий</td><td class="sel"><select onchange="elChange(this)" id='ids6'><option></option><option value='1'>Да</option><option value='0'>Нет</option></select></td><td class="pts" id='idbls6'></td></tr>
+<tr><td>Курение</td><td class="sel"><select onchange="elChange(this)" id='ids7'><option></option><option value='1'>Да</option><option value='0'>Нет</option></select></td><td class="pts" id='idbls7'></td></tr>
+<tr><td>ТИА или инсульт в дополнение к оцениваемому событию</td><td class="sel"><select onchange="elChange(this)" id='ids8'><option></option><option value='1'>Да</option><option value='0'>Нет</option></select></td><td class="pts" id='idbls8'></td></tr>
+<tr><td colspan='2'><b>Сумма баллов</b></td><td class="pts" id='idsum'></td></tr>
+<tr><td colspan='3' class="verdict" id='idv'><b>Вывод:</b></td></tr>
+</table>
+
+</body>
+</html>

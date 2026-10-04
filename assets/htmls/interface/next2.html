@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Документ без названия</title>
+<link rel="stylesheet" type="text/css" href="risk.css" />
+<script type="text/javascript" src="risk.js"></script>
+<script type="text/javascript" src="next1.js"></script>
+</head>
+
+<body>
+<div class="ptitle solo">Шкала ABCD2: оценка риска инсульта после транзиторной ишемической атаки</div>
+<div class="hint">
+<p>В колонке <b>«Выбор»</b>, при помощи выпадающих меню, выбрать нужные данные. Нажать кнопку <b>«Подвести итог»</b> для заполнения ячейки <b>«Вывод»</b>.</p>
+<p>Для добавления результата из ячейки <b>«Вывод»</b> в персональную программу индивидуализированной вторичной профилактики повторного сосудистого события пациента нажать на кнопку <b>«+»</b>.</p>
+<p>С подробной информацией можно ознакомиться в <span class="ulink">руководстве пользователя</span>.</p>
+</div>
+<table class="rtable">
+<tr><td class="th">Факторы риска</td><td class="th sel">Выбор</td><td class="th pts">Баллы</td></tr>
+<tr><td><b>Возраст пациента (лет)</b></td><td class="sel"><select onchange="elChange(this)" id='ids1'><option></option><option value='0'>&lt;60 лет</option><option value='1'>&gt;=60 лет</option></select></td><td class="pts" id='idbls1'></td></tr>
+<tr><td><b>АД в момент исследования</b></td><td class="sel"><select onchange="elChange(this)" id='ids2'><option></option><option value='0'>Нормальное</option><option value='1'>&gt;140 мм. рт. ст.</option></select></td><td class="pts" id='idbls2'></td></tr>
+<tr><td><b>Клинические симптомы</b></td><td class="sel"><select onchange="elChange(this)" id='ids3'><option></option><option value='2'>Гемипарез</option><option value='1'>Нарушение речи без гемипареза</option><option value='0'>Другие симптомы</option></select></td><td class="pts" id='idbls3'></td></tr>
+<tr><td><b>Длительность симптомов</b></td><td class="sel"><select onchange="elChange(this)" id='ids4'><option></option><option value='0'>&lt;10 мин</option><option value='1'>10-59 мин</option><option value='2'>≥60 мин</option></select></td><td class="pts" id='idbls4'></td></tr>
+<tr><td><b>Сахарный диабет</b></td><td class="sel"><select onchange="elChange(this)" id='ids5'><option></option><option value='0'>Нет</option><option value='1'>Есть</option></select></td><td class="pts" id='idbls5'></td></tr>
+<tr><td colspan='2'><b>Сумма баллов</b></td><td class="pts" id='idsum'></td></tr>
+<tr><td colspan='3' class="verdict" id='idv'><b>Вывод:</b></td></tr>
+</table>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+body {
+	background-color: #f0f0f0;
+}
+[contenteditable] {
+  outline: 0px solid transparent;
+}
+   [title]:hover:after{
+    content: attr(title);
+    background:#95632e;
+    position: absolute;
+    left: 20px;
+    top: 20px;
+	width:200px;
+	font-size:12px;
+
+	}
+	[data-title]:hover:after{
+  content: attr(data-title);
+ background:#95632e;
+  position: absolute;
+  left: 20px;
+  top: 10%;
+}
+.unselectable
+{
+	-moz-user-select: none; 
+  -o-user-select:none; 
+  -khtml-user-select: none; 
+  -webkit-user-select: none; 
+  -ms-user-select: none; 
+  user-select: none; 	
+}
+.rec
+{
+	font-style:italic;
+	text-decoration:underline;
+	font-size:18px;
+	margin-left:10px;
+	cursor:pointer;
+	position:relative;
+	 
+}
+.rec2
+{
+	font-style:italic;
+	text-decoration:none;
+	font-size:18px;
+	margin-left:10px;
+	cursor:pointer;
+	  position: absolute;
+}
+.plink
+{
+width:15px;height:12px;color:#FFFFFF; background-color:#996633;display:inline-block;font-size:9px; text-align:center;top:-5px;position:absolute; text-decoration:none 	
+}
+.plinkDown2
+{
+width:15px;height:12px;color:#FFFFFF; background-color:#996633;display:inline-block;font-size:9px; text-align:center;top:3px;position:absolute; text-decoration:none 	
+}
+.plinkDown
+{
+width:15px;height:12px;color:#FFFFFF; background-color:#996633;display:inline-block;font-size:9px; text-align:center;top:-2px;position:absolute; text-decoration:none 	
+}
+.plink2
+{
+width:25px;height:12px;color:#FFFFFF; background-color:#996633;display:inline-block;font-size:9px; text-align:center;top:-5px;position:absolute;text-decoration:none 	
+}
+.plink3
+{
+width:25px;height:12px;color:#FFFFFF; background-color:#996633;display:inline-block;font-size:9px; text-align:center;top:-5px;position:absolute;text-decoration:none;right:-15px;  	
+}
+.rplink3
+{
+width:25px;height:12px;color:#FFFFFF; background-color:#996633;display:inline-block;font-size:9px; text-align:center;top:-5px;position:relative;text-decoration:none;right:-15px;  	
+}
+.rplink4
+{
+width:35px;height:12px;color:#FFFFFF; background-color:#996633;display:inline ;font-size:9px; text-align:center; position:relative;text-decoration:none;  
+}

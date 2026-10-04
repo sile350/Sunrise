@@ -1,0 +1,409 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Документ без названия</title>
+<link rel="stylesheet" type="text/css" href="risk.css" />
+<style type="text/css">
+body {
+	background-color: #f0f0f0;
+}
+ .w
+{
+	color:#FFFFFF;
+}
+.rcl
+{
+background-color:#ff2107;
+width:34px;
+height:24px;
+text-align:center;
+	
+}
+.ycl
+{
+background-color:#ffcf00;
+width:34px;
+height:24px;
+text-align:center;	
+}
+.y2cl
+{
+background-color:#fdfc00;
+width:34px;
+height:24px;
+text-align:center;	
+}
+.g2cl
+{
+background-color:#8ed958;
+width:34px;
+height:24px;
+text-align:center;	
+}
+.gcl
+{
+background-color:#00c260;
+width:34px;
+height:24px;
+text-align:center;	
+}
+
+.zg
+{
+width:34px;
+height:24px;
+text-align:center;
+	
+}
+</style>
+</head>
+<script>
+function setDigit($object)
+{
+if($object.innerHTML<1)
+$v="(низкий риск)";
+if($object.innerHTML>=1 &&   $object.innerHTML<5  )
+$v="(средний или умеренно повышенный риск)";
+if($object.innerHTML>=5 &&   $object.innerHTML<10  )
+$v="(высокий риск)";
+if(  $object.innerHTML>=10  )
+$v="(очень высокий риск)";
+
+document.getElementById("idv").value="Вывод: Уровень суммарного риска "+$object.innerHTML+"% "+$v;
+ 	
+}
+</script>
+
+<body>
+<div class="ptitle solo">Шкала SCORE: 10-летний риск фатальных сердечно - сосудистых осложнений</div>
+<div class="hint">
+<p>Для того, чтобы оценить 10-летний риск фатальных сердечно-сосудистых осложнений человека:</p>
+<p>1. Выберите столбец, соответствующий его полу и возрасту.</p>
+<p>2. Найдите ячейку, соответствующую его статусу курения, уровням систолического артериального давления (САД) и ОХС.</p>
+<p>3. Цифра в ячейке показывает 10-летний риск фатальных сердечно-сосудистых осложнений – это абсолютный суммарный сердечно-сосудистый риск (ССР). Нажмите на выбранную ячейку для добавления результата в ячейку <b>«Вывод»</b>.</p>
+<p>4. Для добавления результата в персональную программу индивидуализированной вторичной профилактики повторного сосудистого события пациента нажать на кнопку <b>«+»</b>.</p>
+<p>С подробной информацией можно ознакомиться в <span class="ulink">руководстве пользователя</span>.</p>
+</div>
+<table>
+  <tr><td><img src='sd.png' /></td><td><table border='0'>
+ <tr><td align="center" style="font-size:20px" colspan='3'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Женщины<br /><br /></td></tr>
+ <tr><td align="center">Некурящие</td><td></td><td align="center">Курящие</td></tr>
+ <tr><td valign="top"> <table>
+ <tr><td width="34" class="zg" onclick="setDigit(this)"   >180</td><td width="34" class="rcl" onclick="setDigit(this)"   >7</td><td width="34" class="rcl" onclick="setDigit(this)" >8</td><td width="34"class="rcl" onclick="setDigit(this)" >9</td><td width="34"class="rcl w" onclick="setDigit(this)" >10</td><td width="51"class="rcl w" onclick="setDigit(this)" >12</td></tr>
+ <tr><td onclick="setDigit(this)" class="zg"   >160</td><td onclick="setDigit(this)" class="rcl"   >5</td><td onclick="setDigit(this)" class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >6</td><td onclick="setDigit(this)"class="rcl" >7</td><td onclick="setDigit(this)"class="rcl" >8</td></tr> 
+  <tr><td onclick="setDigit(this)" class="zg"   >140</td><td onclick="setDigit(this)" class="ycl"   >3</td><td onclick="setDigit(this)" class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >4</td><td onclick="setDigit(this)"class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >6</td></tr> 
+    <tr><td onclick="setDigit(this)" class="zg"   >120</td><td onclick="setDigit(this)" class="y2cl"   >2</td><td onclick="setDigit(this)" class="y2cl" >2</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >4</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr><td onclick="setDigit(this)" class="zg"   >180</td><td onclick="setDigit(this)" class="ycl"   >4</td><td onclick="setDigit(this)" class="ycl" >4</td><td onclick="setDigit(this)"class="rcl" >5</td><td onclick="setDigit(this)"class="rcl " >6</td><td onclick="setDigit(this)"class="rcl " >7</td></tr>
+ <tr><td onclick="setDigit(this)" class="zg"   >160</td><td onclick="setDigit(this)" class="ycl"   >3</td><td onclick="setDigit(this)" class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >4</td><td onclick="setDigit(this)"class="rcl" >5</td></tr> 
+  <tr><td onclick="setDigit(this)" class="zg"   >140</td><td onclick="setDigit(this)" class="y2cl"   >2</td><td onclick="setDigit(this)" class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >3</td></tr> 
+    <tr><td onclick="setDigit(this)" class="zg"   >120</td><td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td></tr> 
+    
+      <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr><td onclick="setDigit(this)" class="zg"   >180</td><td onclick="setDigit(this)" class="y2cl"   >2</td><td onclick="setDigit(this)" class="y2cl" >2</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl " >3</td><td onclick="setDigit(this)"class="ycl " >4</td></tr>
+ <tr><td onclick="setDigit(this)" class="zg"   >160</td><td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="ycl" >3</td></tr> 
+  <tr><td onclick="setDigit(this)" class="zg"   >140</td><td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="y2cl" >2</td></tr> 
+    <tr><td onclick="setDigit(this)" class="zg"   >120</td><td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td></tr> 
+    
+       <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr><td onclick="setDigit(this)" class="zg"   >180</td><td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="y2cl " >2</td><td onclick="setDigit(this)"class="y2cl " >2</td></tr>
+ <tr><td onclick="setDigit(this)" class="zg"   >160</td><td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td></tr> 
+  <tr><td onclick="setDigit(this)" class="zg"   >140</td><td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td></tr> 
+    <tr><td onclick="setDigit(this)" class="zg"   >120</td><td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td></tr>    
+    
+           <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr><td onclick="setDigit(this)" class="zg"   >180</td><td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w " >0</td><td onclick="setDigit(this)"class="gcl  w" >0</td></tr>
+ <tr><td onclick="setDigit(this)" class="zg"   >160</td><td onclick="setDigit(this)" class="gcl  w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td></tr> 
+  <tr><td onclick="setDigit(this)" class="zg"   >140</td><td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td></tr> 
+    <tr><td onclick="setDigit(this)" class="zg"   >120</td><td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td></tr> 
+    <tr><td onclick="setDigit(this)" class="zg"   > </td><td onclick="setDigit(this)" class="zg"   >4</td><td onclick="setDigit(this)" class="zg" >5</td><td onclick="setDigit(this)"class="zg" >6</td><td onclick="setDigit(this)"class="zg" >7</td><td onclick="setDigit(this)"class="zg" >8</td></tr>     
+ </table>
+
+</td><td width="20"> </td><td>
+ <table>
+ 
+ <tr> <td onclick="setDigit(this)" class="rcl w"   >13</td><td onclick="setDigit(this)" class="rcl w" >15</td><td onclick="setDigit(this)"class="rcl w" >17</td><td onclick="setDigit(this)"class="rcl w" >19</td><td onclick="setDigit(this)"class="rcl w" >22</td></tr>
+ <tr> <td onclick="setDigit(this)" class="rcl"   >9</td><td onclick="setDigit(this)" class="rcl w" >10</td><td onclick="setDigit(this)"class="rcl w" >12</td><td onclick="setDigit(this)"class="rcl w" >13</td><td onclick="setDigit(this)"class="rcl w" >16</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="rcl"   >6</td><td onclick="setDigit(this)" class="rcl" >7</td><td onclick="setDigit(this)"class="rcl" >8</td><td onclick="setDigit(this)"class="rcl" >9</td><td onclick="setDigit(this)"class="rcl w" >11</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="ycl"   >4</td><td onclick="setDigit(this)" class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >6</td><td onclick="setDigit(this)"class="rcl" >7</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr>
+    
+   <tr> <td onclick="setDigit(this)" class="rcl"   >8</td><td onclick="setDigit(this)" class="rcl" >9</td><td onclick="setDigit(this)"class="rcl w" >10</td><td onclick="setDigit(this)"class="rcl w" >11</td><td onclick="setDigit(this)"class="rcl w" >13</td></tr>
+ <tr> <td onclick="setDigit(this)" class="rcl"   >5</td><td onclick="setDigit(this)" class="rcl" >6</td><td onclick="setDigit(this)"class="rcl" >7</td><td onclick="setDigit(this)"class="rcl" >8</td><td onclick="setDigit(this)"class="rcl" >9</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="ycl"   >3</td><td onclick="setDigit(this)" class="ycl" >4</td><td onclick="setDigit(this)"class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >6</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="y2cl"   >2</td><td onclick="setDigit(this)" class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >4</td><td onclick="setDigit(this)"class="ycl" >4</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr> 
+  
+ 
+   <tr> <td onclick="setDigit(this)" class="ycl"   >4</td><td onclick="setDigit(this)" class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >5</td><td onclick="setDigit(this)"class="rcl" >6</td><td onclick="setDigit(this)"class="rcl" >7</td></tr>
+ <tr> <td onclick="setDigit(this)" class="ycl"   >3</td><td onclick="setDigit(this)" class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >4</td><td onclick="setDigit(this)"class="ycl" >4</td><td onclick="setDigit(this)"class="rcl" >5</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="y2cl"   >2</td><td onclick="setDigit(this)" class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >3</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr> 
+  
+ 
+   <tr> <td onclick="setDigit(this)" class="y2cl"   >2</td><td onclick="setDigit(this)" class="y2cl" >2</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >3</td><td onclick="setDigit(this)"class="ycl" >4</td></tr>
+ <tr> <td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="y2cl" >2</td><td onclick="setDigit(this)"class="ycl" >3</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="y2cl" >2</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="g2cl"   >1</td><td onclick="setDigit(this)" class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td><td onclick="setDigit(this)"class="g2cl" >1</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr> 
+  
+          
+  
+   <tr> <td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="g2cl   " >0</td><td onclick="setDigit(this)"class="g2cl   " >0</td></tr>
+ <tr> <td onclick="setDigit(this)" class="gcl  w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td><td onclick="setDigit(this)"class="gcl w" >0</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="zg"   >4</td><td onclick="setDigit(this)" class="zg" >5</td><td onclick="setDigit(this)"class="zg" >6</td><td onclick="setDigit(this)"class="zg" >7</td><td onclick="setDigit(this)"class="zg" >8</td></tr>     
+ </table></td></tr>
+ </table></td><td valign="top"><table style="font-size:20px"><tr><td valign="top" height='100' align="center"><br /><br />Возраст</td></tr><tr><td align="center" height='100' valign="top"  >65</td></tr><tr><td align="center" valign="top" height='100' ><br />
+ 
+60</td></tr><tr><td align="center" height='130' >55</td></tr><tr><td align="center" height='120' >45</td></tr><tr><td align="center" height='140' >40</td></tr></table></td><td> 
+  <table border='0'>
+ <tr><td align="center" style="font-size:20px" colspan='3'>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Мужчины<br /><br /></td></tr>
+ <tr><td width="194" align="center">Некурящие</td><td></td><td width="194" align="center">Курящие</td></tr>
+ <tr><td valign="top"> <table>
+ <tr> <td width="34" class="rcl w" onclick="setDigit(this)"   >14</td>
+ <td width="34" class="rcl w" onclick="setDigit(this)" >16</td>
+ <td width="34"class="rcl w" onclick="setDigit(this)" >19</td>
+ <td width="34"class="rcl w" onclick="setDigit(this)" >22</td>
+ <td width="34"class="rcl w" onclick="setDigit(this)" >26</td></tr>
+ <tr>  <td onclick="setDigit(this)" class="rcl"   >9</td>
+ <td onclick="setDigit(this)" class="rcl w" >11</td>
+ <td onclick="setDigit(this)"class="rcl w" >13</td>
+ <td onclick="setDigit(this)"class="rcl w" >15</td>
+ <td onclick="setDigit(this)"class="rcl w" >16</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="rcl"   >6</td>
+  <td onclick="setDigit(this)" class="rcl" >8</td>
+  <td onclick="setDigit(this)"class="rcl" >9</td>
+  <td onclick="setDigit(this)"class="rcl w" >11</td>
+  <td onclick="setDigit(this)"class="rcl w" >13</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="ycl"   >4</td>
+    <td onclick="setDigit(this)" class="rcl" >5</td>
+    <td onclick="setDigit(this)"class="rcl" >6</td>
+    <td onclick="setDigit(this)"class="rcl" >7</td>
+    <td onclick="setDigit(this)"class="rcl" >9</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr> <td onclick="setDigit(this)" class="rcl"   >9</td>
+   <td onclick="setDigit(this)" class="rcl w" >11</td>
+   <td onclick="setDigit(this)"class="rcl w" >13</td>
+   <td onclick="setDigit(this)"class="rcl w " >15</td>
+   <td onclick="setDigit(this)"class="rcl w " >18</td></tr>
+ <tr> <td onclick="setDigit(this)" class="rcl"   >6</td>
+ <td onclick="setDigit(this)" class="rcl" >7</td>
+ <td onclick="setDigit(this)"class="rcl" >9</td>
+ <td onclick="setDigit(this)"class="rcl w" >10</td>
+ <td onclick="setDigit(this)"class="rcl w" >12</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="ycl"   >4</td>
+  <td onclick="setDigit(this)" class="rcl" >5</td>
+  <td onclick="setDigit(this)"class="rcl" >6</td>
+  <td onclick="setDigit(this)"class="rcl" >7</td>
+  <td onclick="setDigit(this)"class="rcl" >9</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="ycl"   >3</td>
+    <td onclick="setDigit(this)" class="ycl" >3</td>
+    <td onclick="setDigit(this)"class="ycl" >4</td>
+    <td onclick="setDigit(this)"class="rcl" >5</td>
+    <td onclick="setDigit(this)"class="rcl" >6</td></tr> 
+    
+      <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr> <td onclick="setDigit(this)" class="rcl"   >6</td>
+   <td onclick="setDigit(this)" class="rcl" >7</td>
+   <td onclick="setDigit(this)"class="rcl" >8</td>
+   <td onclick="setDigit(this)"class="rcl w " >10</td>
+   <td onclick="setDigit(this)"class="rcl w " >12</td></tr>
+ <tr> <td onclick="setDigit(this)" class="ycl"   >4</td>
+ <td onclick="setDigit(this)" class="rcl" >5</td>
+ <td onclick="setDigit(this)"class="rcl" >6</td>
+ <td onclick="setDigit(this)"class="rcl" >7</td>
+ <td onclick="setDigit(this)"class="rcl" >8</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="ycl"   >3</td>
+  <td onclick="setDigit(this)" class="ycl" >3</td>
+  <td onclick="setDigit(this)"class="ycl" >4</td>
+  <td onclick="setDigit(this)"class="rcl" >5</td>
+  <td onclick="setDigit(this)"class="rcl" >6</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="y2cl"   >2</td>
+    <td onclick="setDigit(this)" class="y2cl" >2</td>
+    <td onclick="setDigit(this)"class="ycl" >3</td>
+    <td onclick="setDigit(this)"class="ycl" >3</td>
+    <td onclick="setDigit(this)"class="ycl" >4</td></tr> 
+    
+       <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr> <td onclick="setDigit(this)" class="ycl"   >4</td>
+   <td onclick="setDigit(this)" class="ycl" >4</td>
+   <td onclick="setDigit(this)"class="rcl" >5</td>
+   <td onclick="setDigit(this)"class="rcl " >6</td>
+   <td onclick="setDigit(this)"class="rcl " >7</td></tr>
+ <tr> <td onclick="setDigit(this)" class="y2cl"   >2</td>
+ <td onclick="setDigit(this)" class="ycl" >3</td>
+ <td onclick="setDigit(this)"class="ycl" >3</td>
+ <td onclick="setDigit(this)"class="ycl" >4</td>
+ <td onclick="setDigit(this)"class="rcl" >5</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="y2cl "   >2</td>
+  <td onclick="setDigit(this)" class="y2cl" >2</td>
+  <td onclick="setDigit(this)"class="y2cl" >2</td>
+  <td onclick="setDigit(this)"class="ycl" >3</td>
+  <td onclick="setDigit(this)"class="ycl" >3</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="gcl "   >1</td>
+    <td onclick="setDigit(this)" class="gcl " >1</td>
+    <td onclick="setDigit(this)"class="y2cl" >2</td>
+    <td onclick="setDigit(this)"class="y2cl" >2</td>
+    <td onclick="setDigit(this)"class="y2cl" >2</td></tr>    
+    
+           <tr><td  height="18" colspan="6"></td></tr>
+  
+   <tr> <td onclick="setDigit(this)" class="y2cl "   >1</td>
+   <td onclick="setDigit(this)" class="y2cl " >1</td>
+   <td onclick="setDigit(this)"class="y2cl " >1</td>
+   <td onclick="setDigit(this)"class="g2cl  " >2</td>
+   <td onclick="setDigit(this)"class="g2cl  " >2</td></tr>
+ <tr> <td onclick="setDigit(this)" class="g2cl  "   >1</td>
+ <td onclick="setDigit(this)" class="g2cl " >1</td>
+ <td onclick="setDigit(this)"class="g2cl " >1</td>
+ <td onclick="setDigit(this)"class="g2cl " >1</td>
+ <td onclick="setDigit(this)"class="g2cl " >1</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="gcl w"   >0</td>
+  <td onclick="setDigit(this)" class="g2cl " >1</td>
+  <td onclick="setDigit(this)"class="g2cl " >1</td>
+  <td onclick="setDigit(this)"class="g2cl " >1</td>
+  <td onclick="setDigit(this)"class="g2cl " >1</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="gcl w"   >0</td><td onclick="setDigit(this)" class="gcl w" >0</td>
+    <td onclick="setDigit(this)"class="g2cl " >1</td>
+    <td onclick="setDigit(this)"class="g2cl " >1</td>
+    <td onclick="setDigit(this)"class="g2cl " >1</td></tr> 
+    <tr><td onclick="setDigit(this)" class="zg"   >4</td><td onclick="setDigit(this)" class="zg" >5</td><td onclick="setDigit(this)"class="zg" >6</td><td onclick="setDigit(this)"class="zg" >7</td><td width="34"class="zg" onclick="setDigit(this)" >8</td></tr>     
+ </table>
+
+</td><td width="20"> </td><td>
+ <table>
+ 
+ <tr> <td onclick="setDigit(this)" class="rcl w"   >26</td>
+ <td onclick="setDigit(this)" class="rcl w" >30</td>
+ <td onclick="setDigit(this)"class="rcl w" >35</td>
+ <td onclick="setDigit(this)"class="rcl w" >41</td>
+ <td onclick="setDigit(this)"class="rcl w" >47</td></tr>
+ <tr> <td onclick="setDigit(this)" class="rcl w"   >18</td>
+ <td onclick="setDigit(this)" class="rcl w" >21</td>
+ <td onclick="setDigit(this)"class="rcl w" >25</td>
+ <td onclick="setDigit(this)"class="rcl w" >29</td>
+ <td onclick="setDigit(this)"class="rcl w" >34</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="rcl w"   >13</td>
+  <td onclick="setDigit(this)" class="rcl w" >15</td>
+  <td onclick="setDigit(this)"class="rcl w" >17</td>
+  <td onclick="setDigit(this)"class="rcl w" >20</td>
+  <td onclick="setDigit(this)"class="rcl w" >24</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="rcl"   >9</td>
+    <td onclick="setDigit(this)" class="rcl w" >10</td>
+    <td onclick="setDigit(this)"class="rcl w" >12</td>
+    <td onclick="setDigit(this)"class="rcl w" >14</td>
+    <td onclick="setDigit(this)"class="rcl w" >17</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr>
+    
+   <tr> <td onclick="setDigit(this)" class="rcl w"   >18</td>
+   <td onclick="setDigit(this)" class="rcl w" >21</td>
+   <td onclick="setDigit(this)"class="rcl w" >24</td>
+   <td onclick="setDigit(this)"class="rcl w" >28</td>
+   <td onclick="setDigit(this)"class="rcl w" >33</td></tr>
+ <tr> <td onclick="setDigit(this)" class="rcl w"   >12</td>
+ <td onclick="setDigit(this)" class="rcl w" >14</td>
+ <td onclick="setDigit(this)"class="rcl w" >17</td>
+ <td onclick="setDigit(this)"class="rcl w" >20</td>
+ <td onclick="setDigit(this)"class="rcl w" >24</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="rcl"   >8</td>
+  <td onclick="setDigit(this)" class="rcl w" >10</td>
+  <td onclick="setDigit(this)"class="rcl w" >12</td>
+  <td onclick="setDigit(this)"class="rcl w" >14</td>
+  <td onclick="setDigit(this)"class="rcl w" >17</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="rcl"   >6</td>
+    <td onclick="setDigit(this)" class="rcl" >7</td>
+    <td onclick="setDigit(this)"class="rcl" >8</td>
+    <td onclick="setDigit(this)"class="rcl w" >10</td>
+    <td onclick="setDigit(this)"class="rcl w" >12</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr> 
+  
+ 
+   <tr> <td onclick="setDigit(this)" class="rcl w"   >12</td>
+   <td onclick="setDigit(this)" class="rcl w" >13</td>
+   <td onclick="setDigit(this)"class="rcl w" >16</td>
+   <td onclick="setDigit(this)"class="rcl w" >19</td>
+   <td onclick="setDigit(this)"class="rcl w" >22</td></tr>
+ <tr> <td onclick="setDigit(this)" class="rcl"   >8</td>
+ <td onclick="setDigit(this)" class="rcl" >9</td>
+ <td onclick="setDigit(this)"class="rcl w" >11</td>
+ <td onclick="setDigit(this)"class="rcl w" >13</td>
+ <td onclick="setDigit(this)"class="rcl w" >16</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="rcl"   >5</td>
+  <td onclick="setDigit(this)" class="rcl" >6</td>
+  <td onclick="setDigit(this)"class="rcl" >8</td>
+  <td onclick="setDigit(this)"class="rcl" >9</td>
+  <td onclick="setDigit(this)"class="rcl w" >11</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="ycl"   >4</td>
+    <td onclick="setDigit(this)" class="ycl" >4</td>
+    <td onclick="setDigit(this)"class="rcl" >5</td>
+    <td onclick="setDigit(this)"class="rcl" >6</td>
+    <td onclick="setDigit(this)"class="rcl" >8</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr> 
+  
+ 
+   <tr> <td onclick="setDigit(this)" class="rcl"   >7</td>
+   <td onclick="setDigit(this)" class="rcl" >8</td>
+   <td onclick="setDigit(this)"class="rcl w" >10</td>
+   <td onclick="setDigit(this)"class="rcl w" >12</td>
+   <td onclick="setDigit(this)"class="rcl w" >14</td></tr>
+ <tr> <td onclick="setDigit(this)" class="rcl"   >5</td>
+ <td onclick="setDigit(this)" class="rcl" >6</td>
+ <td onclick="setDigit(this)"class="rcl" >7</td>
+ <td onclick="setDigit(this)"class="rcl" >8</td>
+ <td onclick="setDigit(this)"class="rcl w" >10</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="ycl"   >3</td>
+  <td onclick="setDigit(this)" class="ycl" >4</td>
+  <td onclick="setDigit(this)"class="rcl" >5</td>
+  <td onclick="setDigit(this)"class="rcl" >6</td>
+  <td onclick="setDigit(this)"class="rcl" >7</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="y2cl"   >2</td>
+    <td onclick="setDigit(this)" class="ycl" >3</td>
+    <td onclick="setDigit(this)"class="ycl" >3</td>
+    <td onclick="setDigit(this)"class="ycl" >4</td>
+    <td onclick="setDigit(this)"class="rcl" >5</td></tr> 
+  <tr><td  height="18" colspan="6"></td></tr> 
+  
+          
+  
+   <tr> <td onclick="setDigit(this)" class="y2cl "   >2</td>
+   <td onclick="setDigit(this)" class="y2cl " >2</td>
+   <td onclick="setDigit(this)"class="ycl " >3</td>
+   <td onclick="setDigit(this)"class="ycl   " >3</td>
+   <td onclick="setDigit(this)"class="ycl   " >4</td></tr>
+ <tr> <td onclick="setDigit(this)" class="g2cl   "   >1</td>
+ <td onclick="setDigit(this)" class="y2cl  " >2</td>
+ <td onclick="setDigit(this)"class="y2cl  " >2</td>
+ <td onclick="setDigit(this)"class="y2cl  " >2</td>
+ <td onclick="setDigit(this)"class="ycl  " >3</td></tr> 
+  <tr> <td onclick="setDigit(this)" class="g2cl "   >1</td>
+  <td onclick="setDigit(this)" class="g2cl  " >1</td>
+  <td onclick="setDigit(this)"class="g2cl  " >1</td>
+  <td onclick="setDigit(this)"class="y2cl  " >2</td>
+  <td onclick="setDigit(this)"class="y2cl  " >2</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="g2cl  "   >1</td>
+    <td onclick="setDigit(this)" class="g2cl  " >1</td>
+    <td onclick="setDigit(this)"class="g2cl  " >1</td>
+    <td onclick="setDigit(this)"class="g2cl  " >1</td>
+    <td onclick="setDigit(this)"class="g2cl " >1</td></tr> 
+    <tr> <td onclick="setDigit(this)" class="zg"   >4</td><td onclick="setDigit(this)" class="zg" >5</td><td onclick="setDigit(this)"class="zg" >6</td><td onclick="setDigit(this)"class="zg" >7</td><td onclick="setDigit(this)"class="zg" >8</td></tr>     
+ </table></td></tr>
+ </table></td></tr></table><br />
+<div  style='font-size:30px' align='center'><img src='hol.png' /><br /><br /><input type='text' id='idv' style='font-size:18px;width:700px' value='Вывод:' />&nbsp;&nbsp;<img style='top:2px;position:relative' src='plus.png' width='27' id='idnext3' /></div>
+<br />
+<br />
+<br />
+<br />
+<br />
+</body>
+</html>

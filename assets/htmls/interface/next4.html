@@ -1,0 +1,73 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Документ без названия</title>
+<link rel="stylesheet" type="text/css" href="risk.css" />
+<script type="text/javascript" src="risk.js"></script>
+<script type="text/javascript" src="next4.js"></script>
+</head>
+
+<body>
+<div class="ptitle solo">Фрамингемская шкала: оценка индивидуального риска развития инсульта</div>
+<div class="hint">
+<p>В колонке <b>«Выбор»</b>, при помощи выпадающих меню, выбрать нужные данные. Нажать кнопку <b>«Подвести итог»</b> для заполнения ячейки <b>«Вывод»</b>.</p>
+<p>Для добавления результата из ячейки <b>«Вывод»</b> в персональную программу индивидуализированной вторичной профилактики повторного сосудистого события пациента нажать на кнопку <b>«+»</b>.</p>
+<p>С подробной информацией можно ознакомиться в <span class="ulink">руководстве пользователя</span>.</p>
+</div>
+<table class="rtable">
+<tr><td class="th">Факторы риска</td><td class="th sel">Выбор</td><td class="th pts">Баллы</td></tr>
+<tr><td colspan='3' class="c"><input onmousedown="elChangex2(this)" onclick='selectPm()' type='radio' id='idpm' name='pol' value='1' />Мужчина <input onmousedown="elChangex2(this)" onclick='selectPw()' type='radio' id='idpf' name='pol' value='0' />Женщина </td></tr>
+<tr><td><b>Возраст пациента</b></td><td class="sel"><select onclick='return checkForPol()' onchange="elChange(this)" id='idvoz'><option></option>
+<option value='до 57'>до 57</option>
+<option value='57-59'>57-59</option>
+<option value='60-62'>60-62</option>
+<option value='63-65'>63-65</option>
+<option value='66-68'>66-68</option>
+<option value='69-71'>69-71</option>
+<option value='72-74'>72-74</option>
+<option value='75-77'>75-77</option>
+<option value='78-80'>78-80</option>
+<option value='81-83'>81-83</option>
+<option value='84-86'>84-86</option>
+</select></td><td class="pts" id='idbls1'></td></tr>
+<tr><td><b>Артериальное давление (систолическое)</b><br /><input onmousedown="elChangex(this)" type='radio' name='fl' id='idbl' value='0' />Без лечения <input onmousedown="elChangex(this)" type='radio' name='fl' id='idfl' value='1' />На фоне лечения </td>
+<td class="sel"><select style="display:none" id='idm' onclick="return checkFone()" onchange="elChange(this)" name="idard">
+<option></option>
+<option value='95-105'>95-105</option>
+<option value='106-116'>106-116</option>
+<option value='117-126'>117-126</option>
+<option value='127-137'>127-137</option>
+<option value='138-148'>138-148</option>
+<option value='149-159'>149-159</option>
+<option value='160-170'>160-170</option>
+<option value='171-181'>171-181</option>
+<option value='182-191'>182-191</option>
+<option value='192-202'>192-202</option>
+<option value='203-213'>203-213</option>
+</select><select style="display:none" id='idw' onclick="return checkFone()" onchange="elChange(this)" name="idard">
+<option></option>
+<option value='95-104'>95-104</option>
+<option value='105-114'>105-114</option>
+<option value='115-124'>115-124</option>
+<option value='125-134'>125-134</option>
+<option value='135-144'>135-144</option>
+<option value='145-154'>145-154</option>
+<option value='155-164'>155-164</option>
+<option value='165-174'>165-174</option>
+<option value='175-184'>175-184</option>
+<option value='185-194'>185-194</option>
+<option value='195-204'>195-204</option>
+</select></td><td class="pts" id='idbls2'></td></tr>
+<tr><td colspan='3' class="group"><b>Сопутствующие заболевания и вредные привычки</b></td></tr>
+<tr><td>Сахарный диабет</td><td class="sel"><select onchange="elChange(this)" id='f1'><option></option><option value='Да'>Да</option><option value='Нет'>Нет</option></select></td><td class="pts" id='idbls3'></td></tr>
+<tr><td>Курение</td><td class="sel"><select onchange="elChange(this)" id='f2'><option></option><option value='Да'>Да</option><option value='Нет'>Нет</option></select></td><td class="pts" id='idbls4'></td></tr>
+<tr><td>ИБС, перемежающая хромота</td><td class="sel"><select onchange="elChange(this)" name="f" id='f3'><option></option><option value='Да'>Да</option><option value='Нет'>Нет</option></select></td><td class="pts" id='idbls5'></td></tr>
+<tr><td>Аритмия</td><td class="sel"><select onchange="elChange(this)" name="f2" id='f4'><option></option><option value='Да'>Да</option><option value='Нет'>Нет</option></select></td><td class="pts" id='idbls6'></td></tr>
+<tr><td>Гипертрофия левого желудочка</td><td class="sel"><select onchange="elChange(this)" name="f3" id='f5'><option></option><option value='Да'>Да</option><option value='Нет'>Нет</option></select></td><td class="pts" id='idbls7'></td></tr>
+<tr><td colspan='2'><b>Сумма баллов</b></td><td class="pts" id='idsum'></td></tr>
+<tr><td colspan='3' class="verdict" id='idv'><b>Вывод:</b></td></tr>
+</table>
+
+</body>
+</html>

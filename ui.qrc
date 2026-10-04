@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>ui/dtp_button.png</file>
+        <file>ui/combo_arrow.png</file>
+    </qresource>
+</RCC>

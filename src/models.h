@@ -1,0 +1,22 @@
+#ifndef MODELS_H
+#define MODELS_H
+
+#include <QString>
+
+struct UserRecord {
+    QString id;
+    QString fio;
+    QString login;
+    QString role;
+    QString mainId;
+};
+
+struct PatientRecord {
+    QString id;
+    QString fio;
+    QString birthDate;
+    QString visitDate;
+    qint64 createdAt = 0;
+};
+
+#endif
