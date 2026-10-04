@@ -19,8 +19,12 @@ class QAxObject;
 class QAxWidget;
 struct IDispatch;
 #else
+#ifdef SUNRISE_USE_WEBKIT
+class QWebView;
+#else
 class QWebEngineView;
 class QWebChannel;
+#endif
 class ClinicalBrowserController;
 
 class ClinicalWebBridge final : public QObject {
@@ -141,9 +145,13 @@ private:
     QAxWidget *m_web = nullptr;
     QAxObject *m_document = nullptr;
 #else
+#ifdef SUNRISE_USE_WEBKIT
+    QWebView *m_web = nullptr;
+#else
     QWebEngineView *m_web = nullptr;
-    ClinicalWebBridge *m_bridge = nullptr;
     QWebChannel *m_channel = nullptr;
+#endif
+    ClinicalWebBridge *m_bridge = nullptr;
     bool m_pageReady = false;
 #endif
     SummaryPanel *m_summary = nullptr;

@@ -6,14 +6,15 @@
 #include <ActiveQt/QAxObject>
 #include <ActiveQt/QAxWidget>
 #include <qt_windows.h>
+#elif defined(SUNRISE_USE_WEBKIT)
+#include <QWebFrame>
+#include <QWebPage>
+#include <QWebSettings>
+#include <QWebView>
 #else
 #include <QEventLoop>
-#include <QJsonDocument>
-#include <QJsonArray>
 #include <QWebChannel>
 #include <QWebEnginePage>
-#include <QWebEngineScript>
-#include <QWebEngineScriptCollection>
 #include <QWebEngineSettings>
 #include <QWebEngineView>
 #endif
@@ -213,6 +214,17 @@ ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *pa
             this, SLOT(onNavigateComplete(IDispatch*,QVariant&)));
     connect(m_web, SIGNAL(DocumentComplete(IDispatch*,QVariant&)),
             this, SLOT(onDocumentComplete(IDispatch*,QVariant&)));
+#elif defined(SUNRISE_USE_WEBKIT)
+    m_web = new QWebView(m_panel);
+    m_web->setGeometry(16, 51, 937, kBrowserHeight);
+    m_web->setAttribute(Qt::WA_NativeWindow);
+    m_web->settings()->setAttribute(QWebSettings::JavascriptEnabled, true);
+    m_web->settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
+    m_web->setStyleSheet(QStringLiteral("QWebView { background: #f0f0f0; }"));
+    m_bridge = new ClinicalWebBridge(this, this);
+    connect(m_web, &QWebView::loadStarted, this, &ClinicalBrowserController::onLoadStarted);
+    connect(m_web, &QWebView::urlChanged, this, &ClinicalBrowserController::onUrlChanged);
+    connect(m_web, &QWebView::loadFinished, this, &ClinicalBrowserController::onLoadFinished);
 #else
     m_web = new QWebEngineView(m_panel);
     m_web->setGeometry(16, 51, 937, kBrowserHeight);
@@ -221,7 +233,6 @@ ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *pa
     m_web->settings()->setAttribute(QWebEngineSettings::JavascriptEnabled, true);
     m_web->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessFileUrls, true);
     m_web->settings()->setAttribute(QWebEngineSettings::FocusOnNavigationEnabled, true);
-    m_web->settings()->setAttribute(QWebEngineSettings::ShowScrollBars, true);
     m_bridge = new ClinicalWebBridge(this, this);
     m_channel = new QWebChannel(m_web->page());
     m_channel->registerObject(QStringLiteral("bridge"), m_bridge);
@@ -1184,6 +1195,9 @@ QVariant ClinicalBrowserController::evalJs(const QString &script) const {
     if (!m_web || !m_web->page()) {
         return {};
     }
+#ifdef SUNRISE_USE_WEBKIT
+    return const_cast<QWebView *>(m_web)->page()->mainFrame()->evaluateJavaScript(script);
+#else
     QVariant result;
     QEventLoop loop;
     QTimer timer;
@@ -1196,24 +1210,15 @@ QVariant ClinicalBrowserController::evalJs(const QString &script) const {
     timer.start(4000);
     loop.exec();
     return result;
+#endif
 }
 
 void ClinicalBrowserController::injectLinuxBridge() {
-    static const QString script = QStringLiteral(
+#ifdef SUNRISE_USE_WEBKIT
+    m_web->page()->mainFrame()->addToJavaScriptWindowObject(QStringLiteral("sunriseBridge"), m_bridge);
+#endif
+    static const QString listeners = QStringLiteral(
         "(function(){"
-        "function startChannel(){"
-        "  if(!window.qt||!qt.webChannelTransport){setTimeout(startChannel,20);return;}"
-        "  new QWebChannel(qt.webChannelTransport,function(channel){"
-        "    window.sunriseBridge=channel.objects.bridge;"
-        "  });"
-        "}"
-        "function loadChannel(){"
-        "  if(typeof QWebChannel==='function'){startChannel();return;}"
-        "  var s=document.createElement('script');"
-        "  s.src='qrc:///qtwebchannel/qwebchannel.js';"
-        "  s.onload=startChannel;"
-        "  document.documentElement.appendChild(s);"
-        "}"
         "function info(el){"
         "  var t=el,id=(t&&t.id)?t.id:'';"
         "  if(!id){var p=t;while(p&&p!==document.body){if(p.id){id=p.id;break;}p=p.parentElement;}}"
@@ -1233,9 +1238,30 @@ void ClinicalBrowserController::injectLinuxBridge() {
         "  document.addEventListener('keyup',function(){if(window.sunriseBridge)sunriseBridge.edited();},true);"
         "  document.addEventListener('focusout',function(){if(window.sunriseBridge)sunriseBridge.edited();},true);"
         "}"
+        "})();");
+#ifdef SUNRISE_USE_WEBKIT
+    evalJs(listeners);
+#else
+    static const QString script = QStringLiteral(
+        "(function(){"
+        "function startChannel(){"
+        "  if(!window.qt||!qt.webChannelTransport){setTimeout(startChannel,20);return;}"
+        "  new QWebChannel(qt.webChannelTransport,function(channel){"
+        "    window.sunriseBridge=channel.objects.bridge;"
+        "  });"
+        "}"
+        "function loadChannel(){"
+        "  if(typeof QWebChannel==='function'){startChannel();return;}"
+        "  var s=document.createElement('script');"
+        "  s.src='qrc:///qtwebchannel/qwebchannel.js';"
+        "  s.onload=startChannel;"
+        "  document.documentElement.appendChild(s);"
+        "}"
         "loadChannel();"
         "})();");
+    evalJs(listeners);
     evalJs(script);
+#endif
 }
 
 void ClinicalBrowserController::onLoadStarted() {

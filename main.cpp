@@ -11,9 +11,6 @@
 #include <QFile>
 #include <QIcon>
 #include <QProxyStyle>
-#ifdef Q_OS_LINUX
-#include <QtWebEngine/qtwebengineglobal.h>
-#endif
 
 namespace {
 
@@ -58,7 +55,6 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_LINUX
     QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
     qputenv("QTWEBENGINE_DISABLE_SANDBOX", "1");
-    QtWebEngine::initialize();
 #endif
     QApplication a(argc, argv);
     a.setStyle(new AppStyle);

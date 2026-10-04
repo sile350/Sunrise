@@ -15,7 +15,27 @@ if(WIN32)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS AxContainer)
 endif()
 if(UNIX AND NOT APPLE)
-    find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS WebEngine WebEngineWidgets WebChannel)
+    # На Astra часто нет Qt5WebEngineConfig.cmake — достаточно WebEngineWidgets.
+    # Если и его нет, собираемся с Qt WebKit (libqt5webkit5-dev).
+    find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS WebEngineWidgets WebChannel)
+    if(Qt${QT_VERSION_MAJOR}WebEngineWidgets_FOUND)
+        set(SUNRISE_LINUX_WEB ENGINE)
+        message(STATUS "Sunrise Linux browser: Qt WebEngineWidgets")
+    else()
+        find_package(Qt${QT_VERSION_MAJOR} QUIET COMPONENTS WebKitWidgets)
+        if(Qt${QT_VERSION_MAJOR}WebKitWidgets_FOUND)
+            set(SUNRISE_LINUX_WEB WEBKIT)
+            message(STATUS "Sunrise Linux browser: Qt WebKitWidgets")
+        endif()
+    endif()
+    if(NOT SUNRISE_LINUX_WEB)
+        message(FATAL_ERROR
+            "Не найден браузерный модуль Qt.\n"
+            "Установите один из пакетов и повторите cmake:\n"
+            "  sudo apt install qtwebengine5-dev libqt5webchannel5-dev\n"
+            "или:\n"
+            "  sudo apt install libqt5webkit5-dev")
+    endif()
 endif()
 
 set(PROJECT_SOURCES
@@ -95,10 +115,16 @@ if(WIN32)
     target_link_libraries(sunrise PRIVATE Qt${QT_VERSION_MAJOR}::AxContainer)
 endif()
 if(UNIX AND NOT APPLE)
-    target_link_libraries(sunrise PRIVATE
-        Qt${QT_VERSION_MAJOR}::WebEngine
-        Qt${QT_VERSION_MAJOR}::WebEngineWidgets
-        Qt${QT_VERSION_MAJOR}::WebChannel)
+    if(SUNRISE_LINUX_WEB STREQUAL "ENGINE")
+        target_compile_definitions(sunrise PRIVATE SUNRISE_USE_WEBENGINE)
+        target_link_libraries(sunrise PRIVATE Qt${QT_VERSION_MAJOR}::WebEngineWidgets)
+        if(TARGET Qt${QT_VERSION_MAJOR}::WebChannel)
+            target_link_libraries(sunrise PRIVATE Qt${QT_VERSION_MAJOR}::WebChannel)
+        endif()
+    elseif(SUNRISE_LINUX_WEB STREQUAL "WEBKIT")
+        target_compile_definitions(sunrise PRIVATE SUNRISE_USE_WEBKIT)
+        target_link_libraries(sunrise PRIVATE Qt${QT_VERSION_MAJOR}::WebKitWidgets)
+    endif()
 endif()
 
 if(${QT_VERSION} VERSION_LESS 6.1.0)
