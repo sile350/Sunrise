@@ -68,7 +68,6 @@ private:
     QLabel *m_pdiag = nullptr;
     QLabel *m_ldiag = nullptr;
     QVector<QLabel *> m_sectionLabels;
-    QLabel *m_riskSubtitle = nullptr;
     QVector<QLabel *> m_markers;
     QVector<QTextEdit *> m_fields;
     QTimer *m_changeTimer = nullptr;

@@ -20,6 +20,7 @@
 #endif
 #include <QApplication>
 #include <QColor>
+#include <QCoreApplication>
 #include <QDate>
 #include <QDir>
 #include <QEvent>
@@ -217,9 +218,10 @@ ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *pa
 #elif defined(SUNRISE_USE_WEBKIT)
     m_web = new QWebView(m_panel);
     m_web->setGeometry(16, 51, 937, kBrowserHeight);
-    m_web->setAttribute(Qt::WA_NativeWindow);
+    m_web->setAutoFillBackground(true);
     m_web->settings()->setAttribute(QWebSettings::JavascriptEnabled, true);
     m_web->settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
+    m_web->settings()->setAttribute(QWebSettings::LocalContentCanAccessRemoteUrls, true);
     m_web->setStyleSheet(QStringLiteral("QWebView { background: #f0f0f0; }"));
     m_bridge = new ClinicalWebBridge(this, this);
     connect(m_web, &QWebView::loadStarted, this, &ClinicalBrowserController::onLoadStarted);
@@ -228,10 +230,11 @@ ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *pa
 #else
     m_web = new QWebEngineView(m_panel);
     m_web->setGeometry(16, 51, 937, kBrowserHeight);
-    m_web->setAttribute(Qt::WA_NativeWindow);
+    m_web->setAutoFillBackground(true);
     m_web->page()->setBackgroundColor(QColor(0xf0, 0xf0, 0xf0));
     m_web->settings()->setAttribute(QWebEngineSettings::JavascriptEnabled, true);
     m_web->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessFileUrls, true);
+    m_web->settings()->setAttribute(QWebEngineSettings::LocalContentCanAccessRemoteUrls, true);
     m_web->settings()->setAttribute(QWebEngineSettings::FocusOnNavigationEnabled, true);
     m_bridge = new ClinicalWebBridge(this, this);
     m_channel = new QWebChannel(m_web->page());
@@ -244,8 +247,10 @@ ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *pa
 
     const auto makeButton = [this](int x, int y, int w, int h) {
         auto *button = new ImageButton(m_panel);
+#ifdef Q_OS_WIN
         button->setAttribute(Qt::WA_NativeWindow);
         // Под собственным HWND поверх IE прозрачные края картинки иначе заливаются чёрным.
+#endif
         button->setStyleSheet(QStringLiteral("ImageButton { background: #f0f0f0; border: none; }")
                               + ImageButton::toolTipStyleSheet());
         button->setGeometry(x, y, w, h);
@@ -363,6 +368,41 @@ void ClinicalBrowserController::openSection(Section section) {
         break;
     }
     openPage(QDir(m_htmlsRoot).filePath(page));
+    refreshLinuxView();
+}
+
+void ClinicalBrowserController::refreshLinuxView() {
+#ifndef Q_OS_WIN
+    if (!m_web) {
+        return;
+    }
+    m_web->show();
+    m_web->raise();
+    if (m_web->width() < 100 || m_web->height() < 100) {
+        m_web->setGeometry(16, 51, 937, kBrowserHeight);
+    }
+    m_web->update();
+    QTimer::singleShot(0, this, [this]() {
+        if (!m_web) {
+            return;
+        }
+        m_web->show();
+        m_web->raise();
+        m_web->update();
+        if (m_itogBtn && m_itogBtn->isVisible()) {
+            m_itogBtn->raise();
+        }
+        if (m_plusBtn && m_plusBtn->isVisible()) {
+            m_plusBtn->raise();
+        }
+        if (m_backBtn && m_backBtn->isVisible()) {
+            m_backBtn->raise();
+        }
+        if (m_recBtn && m_recBtn->isVisible()) {
+            m_recBtn->raise();
+        }
+    });
+#endif
 }
 
 void ClinicalBrowserController::openPage(const QString &path) {
@@ -370,6 +410,34 @@ void ClinicalBrowserController::openPage(const QString &path) {
     if (target.isEmpty()) {
         return;
     }
+#ifndef Q_OS_WIN
+    QString local = target;
+    if (local.startsWith(QStringLiteral("file:"), Qt::CaseInsensitive)) {
+        local = QUrl(local).toLocalFile();
+    }
+    QFileInfo info(local);
+    if (!info.exists()) {
+        const QString fromApp = QDir(QCoreApplication::applicationDirPath())
+                                    .filePath(QStringLiteral("assets/htmls/") + QFileInfo(local).fileName());
+        if (QFileInfo::exists(fromApp)) {
+            info = QFileInfo(fromApp);
+        }
+    }
+    if (info.exists()) {
+        const QString absolute = info.absoluteFilePath();
+        QFile file(absolute);
+        if (file.open(QIODevice::ReadOnly)) {
+            const QString html = QString::fromUtf8(file.readAll());
+            const QUrl pageUrl = QUrl::fromLocalFile(absolute);
+            m_pageReady = false;
+            applyPageAddress(pageUrl.toString());
+            m_web->setHtml(html, pageUrl);
+            refreshLinuxView();
+            return;
+        }
+        target = QUrl::fromLocalFile(absolute).toString();
+    }
+#endif
     if (!target.contains(QStringLiteral("://"))) {
         target = QUrl::fromLocalFile(target).toString();
     }
@@ -378,10 +446,17 @@ void ClinicalBrowserController::openPage(const QString &path) {
 #else
     m_pageReady = false;
     m_web->load(QUrl(target));
+    refreshLinuxView();
 #endif
 }
 
 bool ClinicalBrowserController::eventFilter(QObject *watched, QEvent *event) {
+#ifndef Q_OS_WIN
+    if (watched == m_panel
+        && (event->type() == QEvent::Show || event->type() == QEvent::Resize)) {
+        refreshLinuxView();
+    }
+#endif
     switch (event->type()) {
     case QEvent::KeyPress:
     case QEvent::KeyRelease:

@@ -99,7 +99,7 @@ void SummaryPanel::buildUi() {
     m_ldiag = makeLabel(QString(), m_content, 115, 128, 10, false);
 
     const QStringList sectionTitles = {
-        QStringLiteral("Оценка индивидуального риска повторного сосудистого события"),
+        QStringLiteral("Оценка индивидуального риска повторного сосудистого события (клинические шкалы)"),
         QStringLiteral("Коррекция факторов риска повторного сосудистого события"),
         QStringLiteral("Программа восстановления речевого мышления"),
         QStringLiteral("Дыхательная, артикуляционная гимнастика"),
@@ -125,6 +125,9 @@ void SummaryPanel::buildUi() {
 
         if (i < 5) {
             m_sectionLabels[i] = makeLabel(sectionTitles.at(i), m_content, kSectionLabelX, 0, 12, true);
+            m_sectionLabels[i]->setWordWrap(true);
+            m_sectionLabels[i]->setFixedWidth(kFieldWidth - (kSectionLabelX - kFieldX));
+            m_sectionLabels[i]->adjustSize();
         }
 
         auto *edit = new PlaceholderTextEdit(m_content);
@@ -145,8 +148,6 @@ void SummaryPanel::buildUi() {
             updateAllSize();
         });
     }
-
-    m_riskSubtitle = makeLabel(QStringLiteral("(клинические шкалы)"), m_content, 666, 169, 12, true);
 
     auto *titleEdit = new PlaceholderTextEdit(m_content);
     QFont titleFont(QStringLiteral("Microsoft Sans Serif"));
@@ -202,9 +203,15 @@ void SummaryPanel::updateAllSize() {
     // Как summary.updateAllSize(): поля растут по числу строк, разделы идут друг за другом.
     int top = 169;
     m_markers[0]->move(kMarkerX, top);
-    m_sectionLabels[0]->move(kSectionLabelX, top);
-    m_riskSubtitle->move(666, top);
-    risk->move(kFieldX, 197);
+    int firstTitleHeight = kSectionLabelHeight;
+    if (m_sectionLabels[0]) {
+        m_sectionLabels[0]->setFixedWidth(kFieldWidth - (kSectionLabelX - kFieldX));
+        m_sectionLabels[0]->setWordWrap(true);
+        m_sectionLabels[0]->adjustSize();
+        m_sectionLabels[0]->move(kSectionLabelX, top);
+        firstTitleHeight = qMax(kSectionLabelHeight, m_sectionLabels[0]->height());
+    }
+    risk->move(kFieldX, top + firstTitleHeight + 8);
     risk->resize(kFieldWidth, fittedHeight(risk, 10));
 
     int previousBottom = risk->y() + risk->height();
@@ -213,7 +220,11 @@ void SummaryPanel::updateAllSize() {
         m_markers[i]->move(kMarkerX, top);
         int fieldTop = top + kSectionLabelHeight + 10;
         if (i < 5) {
+            m_sectionLabels[i]->setFixedWidth(kFieldWidth - (kSectionLabelX - kFieldX));
+            m_sectionLabels[i]->setWordWrap(true);
+            m_sectionLabels[i]->adjustSize();
             m_sectionLabels[i]->move(kSectionLabelX, top);
+            fieldTop = top + qMax(kSectionLabelHeight, m_sectionLabels[i]->height()) + 10;
         } else {
             QTextEdit *title = m_fields.value(ExtraTitle);
             title->move(84, top);
@@ -251,7 +262,7 @@ QString SummaryPanel::defaultText(Field field) const {
 QString SummaryPanel::sectionTitle(Field field) const {
     switch (field) {
     case Risk:
-        return m_sectionLabels.value(0)->text() + QLatin1Char(' ') + m_riskSubtitle->text();
+        return m_sectionLabels.value(0) ? m_sectionLabels.value(0)->text() : QString();
     case Corr:
     case Speech:
     case Dih:

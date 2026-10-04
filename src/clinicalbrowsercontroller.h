@@ -57,6 +57,7 @@ public:
     void setImageLoader(const std::function<QString(const QString &)> &loader);
 
     void openSection(Section section);
+    void refreshLinuxView();
     void saveTemplates();
     QString helpIndex() const { return m_helpIndex; }
     QString pageName() const { return m_pageName; }
