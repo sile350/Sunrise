@@ -2,9 +2,18 @@
 
 #include <QTimer>
 
+namespace {
+// uprSpace: wl.Left=240, wl.Top=-30; pictureBox1 внутри wolf — (39,32).
+constexpr int kHostX = 240 + 39;
+constexpr int kHostY = -30 + 32;
+// Пороги анимации в wolf.cs — в координатах pictureBox1; здесь + смещение хоста.
+constexpr int kArriveRightX = 580 + kHostX;
+constexpr int kArriveLeftX = 420 + kHostX;
+}
+
 WolfEngine::WolfEngine(QObject *parent) : ExEngine(parent) {
     m_timer = new QTimer(this);
-    m_timer->setInterval(12);
+    m_timer->setInterval(30);
     connect(m_timer, &QTimer::timeout, this, &WolfEngine::tick);
 }
 
@@ -41,17 +50,27 @@ void WolfEngine::rebuild() {
     const int shipH = sprites[i].h;
     i = img(QStringLiteral("man.png"), 400 * 100 / 60, 0, QStringLiteral("man"), false);
     sprites[i].y = 400 * 100 / 60 - sprites[i].h - shipH;
-    // uprSpace: wl.Left=240, wl.Top=-30; pictureBox1 внутри wolf — (39,32) => начало координат спрайтов (279,2)
     for (ExSprite &s : sprites) {
-        s.x += 240 + 39;
-        s.y += -30 + 32;
+        s.x += kHostX;
+        s.y += kHostY;
     }
-    // arrayLeft/arrayRight — отдельные контролы wolf: Left 410/940, Top 900 (в координатах wl)
-    img(QStringLiteral("arrayLeft.png"), 240 + 410, -30 + 900, QStringLiteral("arrayLeft"), false);
-    img(QStringLiteral("arrayRight.png"), 240 + 940, -30 + 900, QStringLiteral("arrayRight"), false);
-    // textBox1 (wolf.resx): Left 450, Top 170, 606x170, FixedSingle, 14pt — условие задачи; потом «Верно»
+
+    // Стрелки — отдельные PictureBox на форме wolf (Designer Left 132/638, код ставит Top=900).
+    auto placeArrow = [&](const QString &file, int left, const QString &name) {
+        const int a = img(file, 240 + left, -30 + 900, name, false);
+        if (sprites[a].w > 0 && sprites[a].h > 0) {
+            sprites[a].pix = sprites[a].pix.scaled(70, 58, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+            sprites[a].w = 70;
+            sprites[a].h = 58;
+        }
+        return a;
+    };
+    placeArrow(QStringLiteral("arrayLeft.png"), 132, QStringLiteral("arrayLeft"));
+    placeArrow(QStringLiteral("arrayRight.png"), 638, QStringLiteral("arrayRight"));
+
+    // textBox1 (Designer 170,64 / 606x170) + смещение wl.
     {
-        sprites.prepend(ExSprite()); // под остальными спрайтами, чтобы не перехватывать клики
+        sprites.prepend(ExSprite());
         const int t = 0;
         sprites[t].setBox(QStringLiteral("Крестьянину нужно перевезти через реку волка, козу и капусту. \n"
                                          "В лодке, кроме крестьянина, может поместиться только один объект - или волк, "
@@ -59,8 +78,8 @@ void WolfEngine::rebuild() {
                                          "съест козу; если крестьянин оставит без присмотра козу с капустой, коза съест капусту. \n"
                                          "Как ему перевезти всех на другой берег?"),
                           606, 170, 14);
-        sprites[t].x = 240 + 450;
-        sprites[t].y = -30 + 170;
+        sprites[t].x = 240 + 170;
+        sprites[t].y = -30 + 64;
         sprites[t].name = QStringLiteral("msg");
     }
 
@@ -92,7 +111,6 @@ void WolfEngine::arrangeRight() {
 }
 
 void WolfEngine::showMessage(const QString &text) {
-    // textBox1.Text = "Верно" (шрифт 26) в том же поле
     const int i = indexByName(QStringLiteral("msg"));
     if (i >= 0) {
         sprites[i].setBox(text, 606, 170, 26);
@@ -115,7 +133,7 @@ bool WolfEngine::checkDie(const QStringList &bank) {
         die = true;
     }
     if (die) {
-        // wolf.cs checkDie*: красные спрайты, звук, setResults(true); сообщения нет, block не ставится
+        // wolf.cs: красные спрайты, звук, setResults(true); сообщения нет, block не ставится
         ExAssets::playIncorrect();
         emit resultRecorded(true);
     }
@@ -150,21 +168,17 @@ void WolfEngine::tick() {
     if (load >= 0) {
         sprites[load].x += step;
     }
-    bool arrived = false;
-    if (m_shipSide == QLatin1String("left") && sprites[ship].x > 580) {
+    if (m_shipSide == QLatin1String("left") && sprites[ship].x > kArriveRightX) {
         m_shipSide = QStringLiteral("right");
-        arrived = true;
         m_timer->stop();
         m_animating = false;
         checkDie(m_left);
-    } else if (m_shipSide == QLatin1String("right") && sprites[ship].x < 420) {
+    } else if (m_shipSide == QLatin1String("right") && sprites[ship].x < kArriveLeftX) {
         m_shipSide = QStringLiteral("left");
-        arrived = true;
         m_timer->stop();
         m_animating = false;
         checkDie(m_right);
     }
-    Q_UNUSED(arrived);
     emit changed();
 }
 
@@ -203,50 +217,57 @@ void WolfEngine::patientRelease(const QPoint &p) {
     const int mv = m_moving;
     const bool was = m_dragging;
     m_dragging = false;
+    m_moving = -1;
     if (mv < 0 || !was || block || m_animating) {
         return;
     }
     Q_UNUSED(p);
     const QString name = sprites[mv].name;
+    if (name != QLatin1String("wolf") && name != QLatin1String("cab") && name != QLatin1String("goat")) {
+        return;
+    }
     const bool left = m_shipSide == QLatin1String("left");
     QStringList &bank = left ? m_left : m_right;
     const int ship = idx(QStringLiteral("ship"));
     const int bankSide = idx(left ? QStringLiteral("leftside") : QStringLiteral("rightside"));
     bool action = false;
-    const bool onShip = sprites[mv].x > sprites[ship].x - 40 && sprites[mv].x < sprites[ship].x + 200 &&
-                        qAbs(sprites[mv].y - (sprites[ship].y - sprites[mv].h)) < 160;
-    const bool onBank = sprites[mv].x > sprites[bankSide].x - 60 &&
-                        sprites[mv].x < sprites[bankSide].x + sprites[bankSide].w;
-    if (name == m_load) {
-        // из лодки на берег (только на текущий берег)
-        if (onBank && !onShip) {
+
+    // Порядок как в wolf.cs MouseUp: сначала посадка в лодку, затем выгрузка.
+    const bool onShipX = sprites[mv].x > sprites[ship].x && sprites[mv].x < sprites[ship].x + 200;
+    if (onShipX) {
+        action = true;
+        sprites[mv].x = sprites[ship].x + 50;
+        sprites[mv].y = sprites[ship].y - sprites[mv].h;
+        if (m_load.isEmpty()) {
+            m_load = name;
+        } else if (m_load != name) {
+            bank.append(m_load);
+            m_load = name;
+        }
+        bank.removeAll(name);
+        if (left) {
+            arrangeLeft();
+        } else {
+            arrangeRight();
+        }
+    } else if (name == m_load) {
+        const bool onBank = left
+            ? (sprites[mv].x > sprites[bankSide].x &&
+               sprites[mv].x < sprites[bankSide].x + sprites[bankSide].w)
+            : (sprites[mv].x > sprites[bankSide].x && sprites[mv].x < sprites[bankSide].x + 200);
+        if (onBank) {
+            action = true;
             bank.append(name);
             m_load.clear();
             if (left) {
                 arrangeLeft();
             } else {
                 arrangeRight();
-            }
-            action = true;
-            if (!left) {
                 checkCorrect();
             }
         }
-    } else if (bank.contains(name) && onShip) {
-        if (!m_load.isEmpty()) {
-            bank.append(m_load);
-        }
-        bank.removeAll(name);
-        m_load = name;
-        sprites[mv].x = sprites[ship].x + 50;
-        sprites[mv].y = sprites[ship].y - sprites[mv].h;
-        if (left) {
-            arrangeLeft();
-        } else {
-            arrangeRight();
-        }
-        action = true;
     }
+
     if (!action) {
         sprites[mv].x = m_sPos.x();
         sprites[mv].y = m_sPos.y();

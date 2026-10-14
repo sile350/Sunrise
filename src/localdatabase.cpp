@@ -117,7 +117,8 @@ bool LocalDatabase::ensureSchema() {
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "tname TEXT NOT NULL,"
         "font TEXT NOT NULL,"
-        "data TEXT NOT NULL"
+        "data TEXT NOT NULL,"
+        "upr TEXT NOT NULL DEFAULT ''"
         ")",
         "CREATE TABLE IF NOT EXISTS protocols ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -183,6 +184,18 @@ bool LocalDatabase::ensureSchema() {
         return false;
     }
     if (!hasProtocolColumn(QStringLiteral("hdr")) && !exec("ALTER TABLE protocols ADD COLUMN hdr TEXT NOT NULL DEFAULT ''")) {
+        return false;
+    }
+
+    const QList<QStringList> templateColumns = queryRows("PRAGMA table_info(templates)");
+    bool hasUprColumn = false;
+    for (const QStringList &column : templateColumns) {
+        if (column.size() >= 2 && column.at(1) == QLatin1String("upr")) {
+            hasUprColumn = true;
+            break;
+        }
+    }
+    if (!hasUprColumn && !exec("ALTER TABLE templates ADD COLUMN upr TEXT NOT NULL DEFAULT ''")) {
         return false;
     }
 

@@ -51,10 +51,11 @@ public:
     bool deletePatient(const QString &patientId, QString *errorText);
 
     QString defaultAnamnesisTemplate() const;
-    QString loadTemplate(const QString &name);
-    QStringList loadTemplateNames();
-    bool saveTemplate(const QString &name, int fontPointSize, const QString &html, QString *errorText);
-    bool deleteTemplate(const QString &name, QString *errorText);
+    // upr: пусто — шаблоны анамнеза; «1.1.1» / «1.1.4» — шаблоны текста упражнения (как в оригинале).
+    QString loadTemplate(const QString &name, const QString &upr = QString());
+    QStringList loadTemplateNames(const QString &upr = QString());
+    bool saveTemplate(const QString &name, int fontPointSize, const QString &html, QString *errorText, const QString &upr = QString());
+    bool deleteTemplate(const QString &name, QString *errorText, const QString &upr = QString());
 
     // Протоколы упражнений (protocols.cs: saveProtocol / getLastP / getAll / getSall).
     QString insertProtocol(const QString &patientId, const QString &uprid, const QString &header, const QString &body, QString *errorText);

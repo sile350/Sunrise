@@ -1818,15 +1818,20 @@ void SunriseWindow::buildSlidePanels() {
         if (!CustomMessageBox::askConfirm(this, "Внимание! Вы собираетесь удалить данные\nЭто действие необратимо!")) {
             return;
         }
+        const QString scope = currentSettingsScope();
         QString err;
-        if (!m_repository.deleteTemplate(name, &err)) {
+        if (!m_repository.deleteTemplate(name, &err, scope)) {
             CustomMessageBox::showError(this, err);
             return;
         }
         refreshTemplateNames();
         m_templates->setCurrentText(QStringLiteral("Стандартный"));
-        writeProfileConfig(QStringLiteral("Стандартный"), m_fontSlider->value());
-        loadDefaultAnamnesisTemplate();
+        if (scope.isEmpty()) {
+            writeProfileConfig(QStringLiteral("Стандартный"), m_fontSlider->value());
+            loadDefaultAnamnesisTemplate();
+        } else if (m_exerciseHost) {
+            m_exerciseHost->loadStandardTextDocument();
+        }
     });
     connect(m_templateSaveAsButton, &ImageButton::clicked, this, [this]() { saveCurrentAnamnesisTemplate(); });
     connect(saveTemplateBtn, &ImageButton::clicked, this, [this]() {
@@ -2121,8 +2126,29 @@ void SunriseWindow::bindSignals() {
     connect(m_bSave, &ImageButton::clicked, this, [this]() { showPrintPanel(true); });
     connect(m_bPrint, &ImageButton::clicked, this, [this]() { showPrintPanel(false); });
     connect(m_bSettings, &ImageButton::clicked, this, [this]() {
+        if (!settingsAvailable()) {
+            return;
+        }
+        showSettingsSaveTemplateView(false);
         refreshTemplateNames();
-        syncTemplateSelectorFromProfile();
+        if (currentSettingsScope().isEmpty()) {
+            syncTemplateSelectorFromProfile();
+        } else {
+            // Как popprofile_Load: список шаблонов, без подмены текущего текста упражнения.
+            m_suppressTemplateLoad = true;
+            if (m_templates) {
+                const QSignalBlocker blocker(m_templates);
+                m_templates->setCurrentText(QStringLiteral("Стандартный"));
+            }
+            if (m_fontSlider) {
+                QSignalBlocker sliderBlocker(m_fontSlider);
+                m_fontSlider->setValue(24);
+            }
+            if (m_fontSizeLabel) {
+                m_fontSizeLabel->setText(QStringLiteral("24"));
+            }
+            m_suppressTemplateLoad = false;
+        }
         toggleSlidePanel(m_settingsPanel);
     });
     connect(m_templates, QOverload<int>::of(&QComboBox::activated), this, [this](int index) {
@@ -2262,8 +2288,8 @@ void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
     if (!workScreen && m_printPanel) {
         m_printPanel->hide();
     }
-    m_bSettings->setVisible(anamnesis);
-    if (!anamnesis && m_settingsPanel && m_settingsPanel->isVisible()) {
+    updateSettingsButtonVisibility();
+    if (!settingsAvailable() && m_settingsPanel && m_settingsPanel->isVisible()) {
         m_settingsPanel->hide();
     }
     m_bPicPrint->setVisible(false);
@@ -2287,7 +2313,7 @@ void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
         m_patientTitle->raise();
         m_bSave->raise();
         m_bPrint->raise();
-        if (anamnesis) {
+        if (m_bSettings && m_bSettings->isVisible()) {
             m_bSettings->raise();
         }
     }
@@ -3613,7 +3639,7 @@ void SunriseWindow::refreshTemplateNames() {
     const QString current = m_templates->currentText().trimmed();
     const QSignalBlocker blocker(m_templates);
     m_templates->clear();
-    m_templates->addItems(m_repository.loadTemplateNames());
+    m_templates->addItems(m_repository.loadTemplateNames(currentSettingsScope()));
     const int idx = m_templates->findText(current, Qt::MatchExactly);
     if (idx >= 0) {
         m_templates->setCurrentIndex(idx);
@@ -3623,30 +3649,94 @@ void SunriseWindow::refreshTemplateNames() {
 }
 
 QString SunriseWindow::anamnesisTemplatePayload() const {
-    if (!m_anamnesisEdit) {
+    QTextEdit *edit = currentSettingsEdit();
+    if (!edit) {
         return {};
     }
-    return m_anamnesisEdit->toHtml();
+    return edit->toHtml();
+}
+
+bool SunriseWindow::settingsAvailable() const {
+    if (m_currentScreen == ScreenMode::Anamnesis) {
+        return true;
+    }
+    return m_exerciseHost && m_exerciseHost->textSettingsAvailable();
+}
+
+QString SunriseWindow::currentSettingsScope() const {
+    if (m_exerciseHost && m_exerciseHost->textSettingsAvailable()) {
+        return m_exerciseHost->textSettingsScope();
+    }
+    return {};
+}
+
+QTextEdit *SunriseWindow::currentSettingsEdit() const {
+    if (m_exerciseHost && m_exerciseHost->textSettingsAvailable()) {
+        return m_exerciseHost->textSettingsEdit();
+    }
+    if (m_currentScreen == ScreenMode::Anamnesis) {
+        return m_anamnesisEdit;
+    }
+    return nullptr;
+}
+
+void SunriseWindow::updateSettingsButtonVisibility() {
+    if (!m_bSettings) {
+        return;
+    }
+    const bool show = settingsAvailable();
+    m_bSettings->setVisible(show);
+    if (!show && m_settingsPanel && m_settingsPanel->isVisible()) {
+        m_settingsPanel->hide();
+    }
+    if (show) {
+        m_bSettings->raise();
+    }
 }
 
 void SunriseWindow::loadAnamnesisTemplateByName(const QString &name) {
     if (name.isEmpty() || m_suppressTemplateLoad) {
         return;
     }
-    writeProfileConfig(name, m_fontSlider ? m_fontSlider->value() : 24);
-    if (name == QStringLiteral("Стандартный")) {
-        loadDefaultAnamnesisTemplate();
+    const QString scope = currentSettingsScope();
+    QTextEdit *edit = currentSettingsEdit();
+    if (!edit) {
         return;
     }
-    const QString templateData = m_repository.loadTemplate(name);
+    if (scope.isEmpty()) {
+        writeProfileConfig(name, m_fontSlider ? m_fontSlider->value() : 24);
+    }
+    if (name == QStringLiteral("Стандартный")) {
+        if (scope.isEmpty()) {
+            loadDefaultAnamnesisTemplate();
+        } else if (m_exerciseHost) {
+            m_exerciseHost->loadStandardTextDocument();
+            if (m_fontSlider) {
+                changeDocumentFontSize(m_fontSlider->value(), false);
+            }
+        }
+        return;
+    }
+    const QString templateData = m_repository.loadTemplate(name, scope);
     if (templateData.trimmed().isEmpty()) {
         return;
     }
-    applyAnamnesisDocument(templateData);
+    if (scope.isEmpty()) {
+        applyAnamnesisDocument(templateData);
+    } else {
+        edit->setHtml(templateData);
+        if (m_fontSlider) {
+            changeDocumentFontSize(m_fontSlider->value(), false);
+        }
+    }
 }
 
 void SunriseWindow::saveCurrentAnamnesisTemplate() {
-    if (!m_templates || !m_anamnesisEdit) {
+    if (!m_templates) {
+        return;
+    }
+    QTextEdit *edit = currentSettingsEdit();
+    if (!edit) {
         return;
     }
     const QString name = m_templates->currentText().trimmed();
@@ -3658,14 +3748,21 @@ void SunriseWindow::saveCurrentAnamnesisTemplate() {
         CustomMessageBox::showWarning(this, QStringLiteral("Шаблон «Стандартный» нельзя перезаписать."));
         return;
     }
+    const QString scope = currentSettingsScope();
     const int fontSize = m_fontSlider ? m_fontSlider->value() : 24;
-    prepareAnamnesisDocumentForOutput();
+    if (scope.isEmpty()) {
+        prepareAnamnesisDocumentForOutput();
+    } else {
+        changeDocumentFontSize(fontSize, false);
+    }
     QString err;
-    if (!m_repository.saveTemplate(name, fontSize, anamnesisTemplatePayload(), &err)) {
+    if (!m_repository.saveTemplate(name, fontSize, anamnesisTemplatePayload(), &err, scope)) {
         CustomMessageBox::showError(this, err);
         return;
     }
-    writeProfileConfig(name, fontSize);
+    if (scope.isEmpty()) {
+        writeProfileConfig(name, fontSize);
+    }
     refreshTemplateNames();
     {
         QSignalBlocker blocker(m_templates);
@@ -4010,11 +4107,47 @@ void SunriseWindow::updateFormatButtonIcons() {
 }
 
 void SunriseWindow::changeDocumentFontSize(int pointSize, bool persistProfile) {
-    if (!m_anamnesisEdit || pointSize <= 0) {
+    if (pointSize <= 0) {
         return;
     }
     if (m_fontSizeLabel) {
         m_fontSizeLabel->setText(QString::number(pointSize));
+    }
+
+    QTextEdit *edit = currentSettingsEdit();
+    const QString scope = currentSettingsScope();
+    if (!edit) {
+        return;
+    }
+
+    if (!scope.isEmpty()) {
+        // Упражнения 1.1.1 / 1.1.4: как popprofile.changeFont — правка fs* в документе.
+        QString html = edit->toHtml();
+        for (int size = 15; size <= 33; ++size) {
+            html.replace(QStringLiteral("fs%1").arg(size), QStringLiteral("fs%1").arg(pointSize));
+            const QString oldPt = QString::number(size / 2.0, 'f', 1);
+            const QString newPt = QString::number(pointSize / 2.0, 'f', 1);
+            html.replace(QStringLiteral("font-size:%1pt").arg(oldPt), QStringLiteral("font-size:%1pt").arg(newPt));
+            html.replace(QStringLiteral("font-size:%1pt").arg(size), QStringLiteral("font-size:%1pt").arg(pointSize));
+        }
+        const QTextCursor savedCursor = edit->textCursor();
+        const int savedScroll = edit->verticalScrollBar() ? edit->verticalScrollBar()->value() : 0;
+        const int savedPos = savedCursor.position();
+        const int savedAnchor = savedCursor.anchor();
+        edit->setHtml(html);
+        QTextCursor restored(edit->document());
+        const int docEnd = edit->document()->characterCount() - 1;
+        restored.setPosition(qBound(0, savedAnchor, qMax(0, docEnd)));
+        restored.setPosition(qBound(0, savedPos, qMax(0, docEnd)), QTextCursor::KeepAnchor);
+        edit->setTextCursor(restored);
+        if (edit->verticalScrollBar()) {
+            edit->verticalScrollBar()->setValue(savedScroll);
+        }
+        return;
+    }
+
+    if (!m_anamnesisEdit) {
+        return;
     }
 
     bool reloadedFromRtf = false;
@@ -4092,7 +4225,7 @@ void SunriseWindow::writeProfileConfig(const QString &profileName, int fontSize)
 }
 
 void SunriseWindow::setWorkChromeVisible(bool visible) {
-    const bool showSettings = visible && m_currentScreen == ScreenMode::Anamnesis;
+    const bool showSettings = visible && settingsAvailable();
     const bool showSavePrint = visible && isWorkScreen(m_currentScreen);
     const QWidgetList chromeWidgets = {
         m_bList, m_bExit, m_bInfo,
@@ -4261,17 +4394,26 @@ void SunriseWindow::openExercise(const QString &menuId) {
     m_exerciseHost->raise();
     m_helpIndex = rt.helpFile;
     connect(m_exerciseHost, &ExerciseHost::closeRequested, this, [this]() { closeExercise(true); });
+    connect(m_exerciseHost, &ExerciseHost::textSettingsAvailabilityChanged, this, [this]() {
+        updateSettingsButtonVisibility();
+    });
+    updateSettingsButtonVisibility();
+    m_exerciseHost->setDualScreenEnabled(AppSettings::dualScreenEnabled());
 }
 
 void SunriseWindow::closeExercise(bool restoreWork) {
     if (!m_exerciseHost) {
         return;
     }
+    if (m_settingsPanel && m_settingsPanel->isVisible() && !currentSettingsScope().isEmpty()) {
+        m_settingsPanel->hide();
+    }
     ExerciseHost *host = m_exerciseHost;
     m_exerciseHost = nullptr;
     host->shutdown();
     host->hide();
     host->deleteLater();
+    updateSettingsButtonVisibility();
     if (restoreWork) {
         if (isWorkScreen(m_currentScreen) && m_currentScreen != ScreenMode::Anamnesis) {
             m_helpIndex = m_clinical->helpIndex();

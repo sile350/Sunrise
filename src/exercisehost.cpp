@@ -888,6 +888,7 @@ void ExerciseHost::onParamChanged(QComboBox *source) {
         if (m_mp) {
             m_mp->questionText.clear();
         }
+        emit textSettingsAvailabilityChanged();
         break;
     case ExCoverKind::C112:
     case ExCoverKind::C312:
@@ -1047,6 +1048,42 @@ void ExerciseHost::setDualScreenEnabled(bool enabled) {
     }
     m_dualScreen = enabled;
     representPatient();
+}
+
+bool ExerciseHost::textSettingsAvailable() const {
+    if (m_rt.coverKind == ExCoverKind::C1) {
+        return true;
+    }
+    if (m_rt.coverKind == ExCoverKind::C114 && m_cover && m_cover->combo1) {
+        return m_cover->combo1->currentText() == QLatin1String("2");
+    }
+    return false;
+}
+
+QString ExerciseHost::textSettingsScope() const {
+    if (m_rt.coverKind == ExCoverKind::C1) {
+        return QStringLiteral("1.1.1");
+    }
+    if (m_rt.coverKind == ExCoverKind::C114) {
+        return QStringLiteral("1.1.4");
+    }
+    return {};
+}
+
+QTextEdit *ExerciseHost::textSettingsEdit() const {
+    return (m_cover && textSettingsAvailable()) ? m_cover->rtf : nullptr;
+}
+
+void ExerciseHost::loadStandardTextDocument() {
+    QTextEdit *edit = textSettingsEdit();
+    if (!edit) {
+        return;
+    }
+    if (m_rt.coverKind == ExCoverKind::C1) {
+        RtfCover::loadInto(edit, ExAssets::exnPath(QStringLiteral("1.1.1/text.rtf")));
+    } else if (m_rt.coverKind == ExCoverKind::C114) {
+        RtfCover::loadInto(edit, ExAssets::exnPath(QStringLiteral("1.1.4/ans1.rtf")));
+    }
 }
 
 bool ExerciseHost::singleScreenActive() const {

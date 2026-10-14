@@ -70,3 +70,17 @@
 97	1693	8136390990724045	CMakeFiles/sunrise.dir/src/repository.cpp.obj	5a5fed4ff1c13f9f
 96	2218	8136390990714062	CMakeFiles/sunrise.dir/src/engines/movewordsengine.cpp.obj	152a4dec50713524
 2218	3532	8136391011932227	sunrise.exe	d030bdc9b410b336
+48	541	8137190662741860	sunrise_autogen/timestamp	8f2c77479716071e
+48	541	8137190662741860	sunrise_autogen/mocs_compilation.cpp	8f2c77479716071e
+48	541	8137190662741860	D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/timestamp	8f2c77479716071e
+48	541	8137190662741860	D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/mocs_compilation.cpp	8f2c77479716071e
+548	2312	8137190663171516	CMakeFiles/sunrise.dir/src/localdatabase.cpp.obj	9401b302ce40b6a5
+543	2720	8137190663113326	CMakeFiles/sunrise.dir/main.cpp.obj	8ca95f5e47368ce2
+550	2727	8137190663181289	CMakeFiles/sunrise.dir/src/licenseservice.cpp.obj	2b4a0c34d826320a
+546	2798	8137190663152006	CMakeFiles/sunrise.dir/src/engines/wolfengine.cpp.obj	158570bd19ce67f7
+545	3128	8137190663132846	CMakeFiles/sunrise.dir/src/coverpanel.cpp.obj	149f4eeb8853249a
+547	3254	8137190663161757	CMakeFiles/sunrise.dir/src/repository.cpp.obj	5a5fed4ff1c13f9f
+541	3391	8137190663103460	CMakeFiles/sunrise.dir/sunrise_autogen/mocs_compilation.cpp.obj	1537703c01c690ad
+545	4000	8137190663142259	CMakeFiles/sunrise.dir/src/exercisehost.cpp.obj	6be6e813d233d1c2
+544	7789	8137190663123020	CMakeFiles/sunrise.dir/src/sunrisewindow.cpp.obj	3c51073880c5176f
+7789	10085	8137190735577601	sunrise.exe	d030bdc9b410b336

@@ -117,6 +117,11 @@ private:
     void saveCurrentAnamnesisTemplate();
     QString anamnesisTemplatePayload() const;
     void syncTemplateSelectorFromProfile();
+    // Настройки текста: анамнез или упражнение 1.1.1 / 1.1.4 (уровень 2).
+    bool settingsAvailable() const;
+    QString currentSettingsScope() const;
+    QTextEdit *currentSettingsEdit() const;
+    void updateSettingsButtonVisibility();
     void setWorkChromeVisible(bool visible);
     void raiseChromeWidgets();
     void resetUserCreateForm();

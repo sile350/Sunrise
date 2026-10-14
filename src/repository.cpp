@@ -307,16 +307,19 @@ QString Repository::defaultAnamnesisTemplate() const {
     return "<p><b>Ф.И.О. пациента:</b> </p><p><b>Дата рождения:</b> </p><p><b>Дата обращения:</b> </p><p><b>Диагноз:</b> </p>"
            "<p><b>Анамнестические данные:</b> </p><p><b>Жалобы:</b> </p><p></p><p><b>Заключение:</b> </p><p></p><p><b>Рекомендации:</b> </p>";
 }
-QString Repository::loadTemplate(const QString &name) {
+QString Repository::loadTemplate(const QString &name, const QString &upr) {
     if (name == "Стандартный") {
-        return defaultAnamnesisTemplate();
+        return upr.isEmpty() ? defaultAnamnesisTemplate() : QString();
     }
-    return m_local.queryScalar("SELECT data FROM templates WHERE tname='" + LocalDatabase::escape(name) + "'");
+    return m_local.queryScalar(
+        "SELECT data FROM templates WHERE tname='" + LocalDatabase::escape(name)
+        + "' AND upr='" + LocalDatabase::escape(upr) + "'");
 }
-QStringList Repository::loadTemplateNames() {
+QStringList Repository::loadTemplateNames(const QString &upr) {
     QStringList names;
     names << "Стандартный";
-    const QList<QStringList> rows = m_local.queryRows("SELECT tname FROM templates ORDER BY tname");
+    const QList<QStringList> rows = m_local.queryRows(
+        "SELECT tname FROM templates WHERE upr='" + LocalDatabase::escape(upr) + "' ORDER BY tname");
     for (const QStringList &row : rows) {
         if (row.isEmpty()) {
             continue;
@@ -328,16 +331,20 @@ QStringList Repository::loadTemplateNames() {
     }
     return names;
 }
-bool Repository::saveTemplate(const QString &name, int fontPointSize, const QString &html, QString *errorText) {
+bool Repository::saveTemplate(const QString &name, int fontPointSize, const QString &html, QString *errorText, const QString &upr) {
     const QString escapedName = LocalDatabase::escape(name);
     const QString escapedHtml = LocalDatabase::escape(html);
-    const QString countStr = m_local.queryScalar("SELECT COUNT(*) FROM templates WHERE tname='" + escapedName + "'");
+    const QString escapedUpr = LocalDatabase::escape(upr);
+    const QString countStr = m_local.queryScalar(
+        "SELECT COUNT(*) FROM templates WHERE tname='" + escapedName + "' AND upr='" + escapedUpr + "'");
     const bool exists = countStr.trimmed().toInt() > 0;
     QString sql;
     if (exists) {
-        sql = "UPDATE templates SET font='" + QString::number(fontPointSize) + "',data='" + escapedHtml + "' WHERE tname='" + escapedName + "'";
+        sql = "UPDATE templates SET font='" + QString::number(fontPointSize) + "',data='" + escapedHtml
+            + "' WHERE tname='" + escapedName + "' AND upr='" + escapedUpr + "'";
     } else {
-        sql = "INSERT INTO templates (tname,font,data) VALUES('" + escapedName + "','" + QString::number(fontPointSize) + "','" + escapedHtml + "')";
+        sql = "INSERT INTO templates (tname,font,data,upr) VALUES('" + escapedName + "','"
+            + QString::number(fontPointSize) + "','" + escapedHtml + "','" + escapedUpr + "')";
     }
     if (!m_local.exec(sql)) {
         if (errorText) {
@@ -347,14 +354,16 @@ bool Repository::saveTemplate(const QString &name, int fontPointSize, const QStr
     }
     return true;
 }
-bool Repository::deleteTemplate(const QString &name, QString *errorText) {
+bool Repository::deleteTemplate(const QString &name, QString *errorText, const QString &upr) {
     if (name == QStringLiteral("Стандартный")) {
         if (errorText) {
             *errorText = "Стандартный шаблон нельзя удалить.";
         }
         return false;
     }
-    if (!m_local.exec("DELETE FROM templates WHERE tname='" + LocalDatabase::escape(name) + "'")) {
+    if (!m_local.exec(
+            "DELETE FROM templates WHERE tname='" + LocalDatabase::escape(name)
+            + "' AND upr='" + LocalDatabase::escape(upr) + "'")) {
         if (errorText) {
             *errorText = m_local.lastError();
         }

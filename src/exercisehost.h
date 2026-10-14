@@ -17,6 +17,7 @@ class QComboBox;
 class QRadioButton;
 class QScrollArea;
 class QTextBrowser;
+class QTextEdit;
 class QLabel;
 class QPushButton;
 class ImageButton;
@@ -46,8 +47,15 @@ public:
     // один экран — сцена пациента на весь монитор врача с панелью управления.
     void setDualScreenEnabled(bool enabled);
 
+    // Настройки текста (как bsettings в оригинале): 1.1.1 всегда; 1.1.4 — уровень «2».
+    bool textSettingsAvailable() const;
+    QString textSettingsScope() const;
+    QTextEdit *textSettingsEdit() const;
+    void loadStandardTextDocument();
+
 signals:
     void closeRequested();
+    void textSettingsAvailabilityChanged();
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
