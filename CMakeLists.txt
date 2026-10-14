@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets)
-find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network PrintSupport Sql Concurrent)
+find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets Network PrintSupport Sql Concurrent Multimedia)
 if(WIN32)
     find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS AxContainer)
 endif()
@@ -46,6 +46,34 @@ set(PROJECT_SOURCES
         src/sunrisewindow.h
         src/rtfconverter.h
         src/rtfconverter.cpp
+        src/uistyles.h
+        src/uistyles.cpp
+        src/exerciseids.h
+        src/exerciseids.cpp
+        src/coverpanel.h
+        src/coverpanel.cpp
+        src/exercisehost.h
+        src/exercisehost.cpp
+        src/exerciseprotocol.h
+        src/exerciseprotocol.cpp
+        src/protocoleditor.h
+        src/protocoleditor.cpp
+        src/scoringform.h
+        src/scoringform.cpp
+        src/patientwindow.h
+        src/patientwindow.cpp
+        src/engines/exengine.h
+        src/engines/exengine.cpp
+        src/engines/movewordsengine.h
+        src/engines/movewordsengine.cpp
+        src/engines/mpicturesengine.h
+        src/engines/mpicturesengine.cpp
+        src/engines/storiesengine.h
+        src/engines/storiesengine.cpp
+        src/engines/wolfengine.h
+        src/engines/wolfengine.cpp
+        src/engines/rtfcoverengine.h
+        src/engines/rtfcoverengine.cpp
         src/usagejournal.h
         src/usagejournal.cpp
         src/summarypanel.h
@@ -106,6 +134,7 @@ endif()
 
 target_link_libraries(sunrise PRIVATE
     Qt${QT_VERSION_MAJOR}::Widgets
+    Qt${QT_VERSION_MAJOR}::Multimedia
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::PrintSupport
     Qt${QT_VERSION_MAJOR}::Sql

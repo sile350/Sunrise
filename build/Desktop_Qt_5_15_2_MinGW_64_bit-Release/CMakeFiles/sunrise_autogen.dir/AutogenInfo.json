@@ -81,6 +81,12 @@
 		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Sql/Qt5Sql_QSQLiteDriverPlugin.cmake",
 		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Concurrent/Qt5ConcurrentConfigVersion.cmake",
 		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Concurrent/Qt5ConcurrentConfig.cmake",
+		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5MultimediaConfigVersion.cmake",
+		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5MultimediaConfig.cmake",
+		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_AudioCaptureServicePlugin.cmake",
+		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_DSServicePlugin.cmake",
+		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_QM3uPlaylistPlugin.cmake",
+		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_QWindowsAudioPlugin.cmake",
 		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5/Qt5ConfigVersion.cmake",
 		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5/Qt5Config.cmake",
 		"D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5/Qt5ModuleLocation.cmake",
@@ -122,9 +128,69 @@
 			null
 		],
 		[
+			"D:/projects/DokitLab/sunrise/src/coverpanel.h",
+			"MU",
+			"UVLADIE3JM/moc_coverpanel.cpp",
+			null
+		],
+		[
 			"D:/projects/DokitLab/sunrise/src/custommessagebox.h",
 			"MU",
 			"UVLADIE3JM/moc_custommessagebox.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/exengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_exengine.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/movewordsengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_movewordsengine.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/mpicturesengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_mpicturesengine.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/rtfcoverengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_rtfcoverengine.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/storiesengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_storiesengine.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/wolfengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_wolfengine.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/exercisehost.h",
+			"MU",
+			"UVLADIE3JM/moc_exercisehost.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/exerciseids.h",
+			"MU",
+			"UVLADIE3JM/moc_exerciseids.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/exerciseprotocol.h",
+			"MU",
+			"UVLADIE3JM/moc_exerciseprotocol.cpp",
 			null
 		],
 		[
@@ -164,6 +230,18 @@
 			null
 		],
 		[
+			"D:/projects/DokitLab/sunrise/src/patientwindow.h",
+			"MU",
+			"UVLADIE3JM/moc_patientwindow.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/protocoleditor.h",
+			"MU",
+			"UVLADIE3JM/moc_protocoleditor.cpp",
+			null
+		],
+		[
 			"D:/projects/DokitLab/sunrise/src/repository.h",
 			"MU",
 			"UVLADIE3JM/moc_repository.cpp",
@@ -173,6 +251,12 @@
 			"D:/projects/DokitLab/sunrise/src/rtfconverter.h",
 			"MU",
 			"UVLADIE3JM/moc_rtfconverter.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/scoringform.h",
+			"MU",
+			"UVLADIE3JM/moc_scoringform.cpp",
 			null
 		],
 		[
@@ -194,6 +278,12 @@
 			null
 		],
 		[
+			"D:/projects/DokitLab/sunrise/src/uistyles.h",
+			"MU",
+			"UVLADIE3JM/moc_uistyles.cpp",
+			null
+		],
+		[
 			"D:/projects/DokitLab/sunrise/src/usagejournal.h",
 			"MU",
 			"UVLADIE3JM/moc_usagejournal.cpp",
@@ -210,6 +300,7 @@
 		"QT_CONCURRENT_LIB",
 		"QT_CORE_LIB",
 		"QT_GUI_LIB",
+		"QT_MULTIMEDIA_LIB",
 		"QT_NETWORK_LIB",
 		"QT_NO_DEBUG",
 		"QT_PRINTSUPPORT_LIB",
@@ -231,6 +322,7 @@
 		"D:/Qt/5.15.2/mingw81_64/include/QtANGLE",
 		"D:/Qt/5.15.2/mingw81_64/include/QtCore",
 		"D:/Qt/5.15.2/mingw81_64/mkspecs/win32-g++",
+		"D:/Qt/5.15.2/mingw81_64/include/QtMultimedia",
 		"D:/Qt/5.15.2/mingw81_64/include/QtNetwork",
 		"D:/Qt/5.15.2/mingw81_64/include/QtPrintSupport",
 		"D:/Qt/5.15.2/mingw81_64/include/QtSql",
@@ -277,7 +369,33 @@
 			"MU",
 			null
 		],
+		[ "D:/projects/DokitLab/sunrise/src/coverpanel.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/custommessagebox.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/engines/exengine.cpp", "MU", null ],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/movewordsengine.cpp",
+			"MU",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/mpicturesengine.cpp",
+			"MU",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/rtfcoverengine.cpp",
+			"MU",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/storiesengine.cpp",
+			"MU",
+			null
+		],
+		[ "D:/projects/DokitLab/sunrise/src/engines/wolfengine.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/exercisehost.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/exerciseids.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/exerciseprotocol.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/fieldcrypto.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/imagebutton.cpp", "MU", null ],
 		[
@@ -287,11 +405,15 @@
 		],
 		[ "D:/projects/DokitLab/sunrise/src/licenseservice.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/localdatabase.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/patientwindow.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/protocoleditor.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/repository.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/rtfconverter.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/scoringform.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/singleinstance.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/summarypanel.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/sunrisewindow.cpp", "MU", null ],
+		[ "D:/projects/DokitLab/sunrise/src/uistyles.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/usagejournal.cpp", "MU", null ]
 	],
 	"UIC_OPTIONS" : [],

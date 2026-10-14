@@ -1,10 +1,15 @@
 sunrise_autogen/timestamp: \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QDate \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QFlags \
+	D:/Qt/5.15.2/mingw81_64/include/QtCore/QHash \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QList \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QMap \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QMetaType \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QObject \
+	D:/Qt/5.15.2/mingw81_64/include/QtCore/QPair \
+	D:/Qt/5.15.2/mingw81_64/include/QtCore/QPoint \
+	D:/Qt/5.15.2/mingw81_64/include/QtCore/QPointer \
+	D:/Qt/5.15.2/mingw81_64/include/QtCore/QRect \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QSharedDataPointer \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QString \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/QStringList \
@@ -56,6 +61,7 @@ sunrise_autogen/timestamp: \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qobjectdefs_impl.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qpair.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qpoint.h \
+	D:/Qt/5.15.2/mingw81_64/include/QtCore/qpointer.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qprocessordetection.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qrect.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qrefcount.h \
@@ -84,6 +90,9 @@ sunrise_autogen/timestamp: \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qvarlengtharray.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qvector.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtCore/qversiontagging.h \
+	D:/Qt/5.15.2/mingw81_64/include/QtGui/QColor \
+	D:/Qt/5.15.2/mingw81_64/include/QtGui/QFont \
+	D:/Qt/5.15.2/mingw81_64/include/QtGui/QPixmap \
 	D:/Qt/5.15.2/mingw81_64/include/QtGui/qbrush.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtGui/qcolor.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtGui/qcursor.h \
@@ -145,6 +154,7 @@ sunrise_autogen/timestamp: \
 	D:/Qt/5.15.2/mingw81_64/include/QtWidgets/QTextBrowser \
 	D:/Qt/5.15.2/mingw81_64/include/QtWidgets/QTextEdit \
 	D:/Qt/5.15.2/mingw81_64/include/QtWidgets/QTreeWidget \
+	D:/Qt/5.15.2/mingw81_64/include/QtWidgets/QWidget \
 	D:/Qt/5.15.2/mingw81_64/include/QtWidgets/qabstractbutton.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtWidgets/qabstractitemdelegate.h \
 	D:/Qt/5.15.2/mingw81_64/include/QtWidgets/qabstractitemview.h \
@@ -217,6 +227,12 @@ sunrise_autogen/timestamp: \
 	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Gui/Qt5Gui_QWindowsDirect2DIntegrationPlugin.cmake \
 	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Gui/Qt5Gui_QWindowsIntegrationPlugin.cmake \
 	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Gui/Qt5Gui_QXdgDesktopPortalThemePlugin.cmake \
+	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5MultimediaConfig.cmake \
+	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5MultimediaConfigVersion.cmake \
+	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_AudioCaptureServicePlugin.cmake \
+	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_DSServicePlugin.cmake \
+	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_QM3uPlaylistPlugin.cmake \
+	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Multimedia/Qt5Multimedia_QWindowsAudioPlugin.cmake \
 	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Network/Qt5NetworkConfig.cmake \
 	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Network/Qt5NetworkConfigVersion.cmake \
 	D:/Qt/5.15.2/mingw81_64/lib/cmake/Qt5Network/Qt5Network_QGenericEnginePlugin.cmake \
@@ -440,8 +456,28 @@ sunrise_autogen/timestamp: \
 	D:/projects/DokitLab/sunrise/src/appsettings.h \
 	D:/projects/DokitLab/sunrise/src/clinicalbrowsercontroller.cpp \
 	D:/projects/DokitLab/sunrise/src/clinicalbrowsercontroller.h \
+	D:/projects/DokitLab/sunrise/src/coverpanel.cpp \
+	D:/projects/DokitLab/sunrise/src/coverpanel.h \
 	D:/projects/DokitLab/sunrise/src/custommessagebox.cpp \
 	D:/projects/DokitLab/sunrise/src/custommessagebox.h \
+	D:/projects/DokitLab/sunrise/src/engines/exengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/exengine.h \
+	D:/projects/DokitLab/sunrise/src/engines/movewordsengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/movewordsengine.h \
+	D:/projects/DokitLab/sunrise/src/engines/mpicturesengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/mpicturesengine.h \
+	D:/projects/DokitLab/sunrise/src/engines/rtfcoverengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/rtfcoverengine.h \
+	D:/projects/DokitLab/sunrise/src/engines/storiesengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/storiesengine.h \
+	D:/projects/DokitLab/sunrise/src/engines/wolfengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/wolfengine.h \
+	D:/projects/DokitLab/sunrise/src/exercisehost.cpp \
+	D:/projects/DokitLab/sunrise/src/exercisehost.h \
+	D:/projects/DokitLab/sunrise/src/exerciseids.cpp \
+	D:/projects/DokitLab/sunrise/src/exerciseids.h \
+	D:/projects/DokitLab/sunrise/src/exerciseprotocol.cpp \
+	D:/projects/DokitLab/sunrise/src/exerciseprotocol.h \
 	D:/projects/DokitLab/sunrise/src/fieldcrypto.cpp \
 	D:/projects/DokitLab/sunrise/src/fieldcrypto.h \
 	D:/projects/DokitLab/sunrise/src/imagebutton.cpp \
@@ -453,16 +489,24 @@ sunrise_autogen/timestamp: \
 	D:/projects/DokitLab/sunrise/src/localdatabase.cpp \
 	D:/projects/DokitLab/sunrise/src/localdatabase.h \
 	D:/projects/DokitLab/sunrise/src/models.h \
+	D:/projects/DokitLab/sunrise/src/patientwindow.cpp \
+	D:/projects/DokitLab/sunrise/src/patientwindow.h \
+	D:/projects/DokitLab/sunrise/src/protocoleditor.cpp \
+	D:/projects/DokitLab/sunrise/src/protocoleditor.h \
 	D:/projects/DokitLab/sunrise/src/repository.cpp \
 	D:/projects/DokitLab/sunrise/src/repository.h \
 	D:/projects/DokitLab/sunrise/src/rtfconverter.cpp \
 	D:/projects/DokitLab/sunrise/src/rtfconverter.h \
+	D:/projects/DokitLab/sunrise/src/scoringform.cpp \
+	D:/projects/DokitLab/sunrise/src/scoringform.h \
 	D:/projects/DokitLab/sunrise/src/singleinstance.cpp \
 	D:/projects/DokitLab/sunrise/src/singleinstance.h \
 	D:/projects/DokitLab/sunrise/src/summarypanel.cpp \
 	D:/projects/DokitLab/sunrise/src/summarypanel.h \
 	D:/projects/DokitLab/sunrise/src/sunrisewindow.cpp \
 	D:/projects/DokitLab/sunrise/src/sunrisewindow.h \
+	D:/projects/DokitLab/sunrise/src/uistyles.cpp \
+	D:/projects/DokitLab/sunrise/src/uistyles.h \
 	D:/projects/DokitLab/sunrise/src/usagejournal.cpp \
 	D:/projects/DokitLab/sunrise/src/usagejournal.h \
 	D:/projects/DokitLab/sunrise/ui.qrc \

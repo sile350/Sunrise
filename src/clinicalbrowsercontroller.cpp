@@ -309,6 +309,11 @@ ClinicalBrowserController::ClinicalBrowserController(QWidget *panel, QObject *pa
     m_plusBtn = makeButton(723, 909, 32, 34);
     m_backBtn = makeButton(803, 3, 100, 21);
     m_recBtn = makeButton(296, 3, 100, 21);
+    m_protBtn = makeButton(469, 3, 100, 21);
+    m_recBtn->setCursor(Qt::PointingHandCursor);
+    m_protBtn->setCursor(Qt::PointingHandCursor);
+    connect(m_recBtn, &ImageButton::clicked, this, [this]() { setProtocolsMode(false); });
+    connect(m_protBtn, &ImageButton::clicked, this, [this]() { setProtocolsMode(true); });
 
     connect(m_itogBtn, &ImageButton::clicked, this, [this]() {
         runItog();
@@ -350,9 +355,47 @@ void ClinicalBrowserController::setImageLoader(const std::function<QString(const
     m_itogBtn->setImagePath(m_imageLoader(QStringLiteral("itog.png")));
     m_plusBtn->setImagePath(m_imageLoader(QStringLiteral("plus.png")));
     setBackImage(QStringLiteral("backto.png"));
-    const QPixmap rec(m_imageLoader(QStringLiteral("reqon.png")));
+    updateModeImages();
+}
+
+void ClinicalBrowserController::updateModeImages() {
+    if (!m_imageLoader) {
+        return;
+    }
+    const QPixmap rec(m_imageLoader(m_protocolsMode ? QStringLiteral("reqoff.png") : QStringLiteral("reqon.png")));
     m_recBtn->setPixmap(rec);
     m_recBtn->resize(rec.size());
+    const QPixmap prot(m_imageLoader(m_protocolsMode ? QStringLiteral("pron.png") : QStringLiteral("proff.png")));
+    m_protBtn->setPixmap(prot);
+    m_protBtn->resize(prot.size());
+    // pagemanager: bprot.Left = brec.Left + brec.Width; пара вкладок по центру правой области
+    const int areaWidth = m_recBtn->parentWidget() ? m_recBtn->parentWidget()->width() : 966;
+    const int left = (areaWidth - m_recBtn->width() - m_protBtn->width()) / 2;
+    m_recBtn->move(left, m_recBtn->y());
+    m_protBtn->move(left + m_recBtn->width(), m_recBtn->y());
+}
+
+void ClinicalBrowserController::setProtocolsMode(bool on) {
+    if (m_protocolsMode == on || (on && m_section != Section::Speech)) {
+        return;
+    }
+    m_protocolsMode = on;
+    updateModeImages();
+    if (on) {
+        showButton(m_backBtn, false);
+        showButton(m_itogBtn, false);
+        showButton(m_plusBtn, false);
+        m_web->hide();
+    } else {
+        setBrowserHeight(968);
+        m_web->show();
+    }
+    setHelpIndex(on ? QStringLiteral("0.11.htm") : QStringLiteral("1.0.0.htm"));
+    if (m_recBtn->isVisible()) {
+        m_recBtn->raise();
+        m_protBtn->raise();
+    }
+    emit protocolsModeChanged(on);
 }
 
 void ClinicalBrowserController::setBackImage(const QString &name) {
@@ -385,12 +428,19 @@ void ClinicalBrowserController::setHelpIndex(const QString &help) {
 
 void ClinicalBrowserController::openSection(Section section) {
     saveTemplates();
+    if (m_protocolsMode) {
+        m_protocolsMode = false;
+        updateModeImages();
+        m_web->show();
+        emit protocolsModeChanged(false);
+    }
     m_section = section;
     showButton(m_backBtn, false);
     showButton(m_itogBtn, false);
     showButton(m_plusBtn, false);
     const bool speech = section == Section::Speech;
     showButton(m_recBtn, speech);
+    showButton(m_protBtn, speech);
     QString page;
     switch (section) {
     case Section::Risk:
@@ -429,8 +479,12 @@ void ClinicalBrowserController::refreshLinuxView() {
     if (m_web->width() < 100 || m_web->height() < 100) {
         m_web->setGeometry(16, 51, 937, kBrowserHeight);
     }
-    m_web->show();
-    m_web->raise();
+    if (m_protocolsMode) {
+        m_web->hide();
+    } else {
+        m_web->show();
+        m_web->raise();
+    }
     if (m_itogBtn && m_itogBtn->isVisible()) {
         m_itogBtn->raise();
     }
@@ -442,6 +496,9 @@ void ClinicalBrowserController::refreshLinuxView() {
     }
     if (m_recBtn && m_recBtn->isVisible()) {
         m_recBtn->raise();
+    }
+    if (m_protBtn && m_protBtn->isVisible()) {
+        m_protBtn->raise();
     }
 #endif
 }
@@ -1045,6 +1102,11 @@ void ClinicalBrowserController::handleSpeechClick(const QString &id, const QStri
         if (!title.isEmpty()) {
             appendTo(SummaryPanel::Speech, today() + QLatin1Char(' ') + title);
         }
+        return;
+    }
+    // pagemanager.cs: элемент с '.' в id (не idz*) — запуск упражнения (exbegin).
+    if (id.contains(QLatin1Char('.')) && !id.startsWith(QLatin1String("idz"), Qt::CaseInsensitive)) {
+        emit exerciseRequested(id);
         return;
     }
     const auto title = speechTitles().constFind(id);

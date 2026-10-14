@@ -58,6 +58,9 @@ public:
 
     void openSection(Section section);
     void refreshLinuxView();
+    // pagemanager.bprot_Click / brec_Click: протоколы вместо меню упражнений.
+    void setProtocolsMode(bool on);
+    bool protocolsMode() const { return m_protocolsMode; }
     void saveTemplates();
     QString helpIndex() const { return m_helpIndex; }
     QString pageName() const { return m_pageName; }
@@ -65,6 +68,8 @@ public:
 signals:
     void helpIndexChanged(const QString &helpFile);
     void programChanged();
+    void exerciseRequested(const QString &menuId);
+    void protocolsModeChanged(bool on);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -105,6 +110,7 @@ private:
     void finishDocumentLoad();
     void setHelpIndex(const QString &help);
     void setBackImage(const QString &name);
+    void updateModeImages();
     void setBrowserHeight(int height);
     void showButton(ImageButton *button, bool visible);
     void placeResultButtons();
@@ -162,6 +168,8 @@ private:
     ImageButton *m_itogBtn = nullptr;
     ImageButton *m_plusBtn = nullptr;
     ImageButton *m_recBtn = nullptr;
+    ImageButton *m_protBtn = nullptr;
+    bool m_protocolsMode = false;
     QTimer *m_templateSaveTimer = nullptr;
     QString m_htmlsRoot;
     std::function<QString(const QString &)> m_imageLoader;

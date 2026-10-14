@@ -129,6 +129,9 @@ void AppSettings::setDualScreenEnabled(bool enabled) {
             break;
         }
     }
+    while (!lines.isEmpty() && lines.last().trimmed().isEmpty()) {
+        lines.removeLast();
+    }
     if (!found) {
         lines << newLine;
     }

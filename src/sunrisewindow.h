@@ -28,6 +28,8 @@
 
 class QNetworkAccessManager;
 class QPrinter;
+class ExerciseHost;
+class ProtocolEditor;
 
 class SunriseWindow final : public QMainWindow {
     Q_OBJECT
@@ -79,6 +81,12 @@ private:
     void stylePatientsScreen();
     void styleAnamnesisScreen();
     void setupClinicalController();
+    void showProtocolsScreen(bool on);
+    QString protocolsPatientLine() const;
+    void applyDualScreenSetting(bool enabled);
+    void syncScreenModeControls();
+    void openExercise(const QString &menuId);
+    void closeExercise(bool restoreWork);
     void layoutWorkAreaForMode(ScreenMode mode);
     void loadSummaryForCurrentPatient();
     void tryAutoSaveProgram(bool force = false);
@@ -242,6 +250,11 @@ private:
     QComboBox *m_userRole = nullptr;
     ImageButton *m_userSaveButton = nullptr;
     ImageButton *m_userOpenPatients = nullptr;
+    QLabel *m_screenSettingsTitle = nullptr;
+    QCheckBox *m_dualScreenCheck = nullptr;
+    QWidget *m_screenModeSwitch = nullptr;
+    QPushButton *m_screenOneButton = nullptr;
+    QPushButton *m_screenTwoButton = nullptr;
     QString m_editUserId;
     bool m_userSaveInProgress = false;
     bool m_anamnesisSaveInProgress = false;
@@ -266,6 +279,10 @@ private:
     SummaryPanel *m_summaryPanel = nullptr;
     QTextEdit *m_anamnesisEdit = nullptr;
     ClinicalBrowserController *m_clinical = nullptr;
+    ExerciseHost *m_exerciseHost = nullptr;
+    QLabel *m_protocolsTitle = nullptr;
+    ProtocolEditor *m_protocolsView = nullptr;
+    bool m_exerciseHidSummary = false;
     bool m_programSaveInProgress = false;
     QTimer *m_programSaveTimer = nullptr;
     QLabel *m_patientTitle = nullptr;

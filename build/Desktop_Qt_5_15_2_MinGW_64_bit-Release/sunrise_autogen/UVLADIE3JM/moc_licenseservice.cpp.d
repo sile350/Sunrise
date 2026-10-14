@@ -72,6 +72,12 @@ D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunris
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qvarlengtharray.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qvector.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qversiontagging.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtGui/QFont \
+  D:/Qt/5.15.2/mingw81_64/include/QtGui/qfont.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtGui/qtgui-config.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtGui/qtguiglobal.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtGui/qwindowdefs.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtGui/qwindowdefs_win.h \
   D:/Qt/5.15.2/mingw81_64/include/QtNetwork/QNetworkAccessManager \
   D:/Qt/5.15.2/mingw81_64/include/QtNetwork/QSslConfiguration \
   D:/Qt/5.15.2/mingw81_64/include/QtNetwork/QSslPreSharedKeyAuthenticator \
@@ -261,6 +267,7 @@ D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunris
   D:/Qt/Tools/mingw810_64/x86_64-w64-mingw32/include/wchar.h \
   D:/Qt/Tools/mingw810_64/x86_64-w64-mingw32/include/wctype.h \
   D:/projects/DokitLab/sunrise/src/apiclient.h \
+  D:/projects/DokitLab/sunrise/src/exerciseprotocol.h \
   D:/projects/DokitLab/sunrise/src/localdatabase.h \
   D:/projects/DokitLab/sunrise/src/models.h \
   D:/projects/DokitLab/sunrise/src/repository.h

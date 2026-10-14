@@ -2,6 +2,7 @@
 #define REPOSITORY_H
 
 #include "apiclient.h"
+#include "exerciseprotocol.h"
 #include "localdatabase.h"
 #include "models.h"
 
@@ -9,6 +10,13 @@
 #include <QList>
 #include <QObject>
 #include <optional>
+
+struct StoredProtocol {
+    QString id;
+    QString uprid;
+    QString header;
+    QString body;
+};
 
 struct SessionUser {
     QString id;
@@ -48,7 +56,15 @@ public:
     bool saveTemplate(const QString &name, int fontPointSize, const QString &html, QString *errorText);
     bool deleteTemplate(const QString &name, QString *errorText);
 
-    // Stubs for chrome that still calls export helpers (anamnesis-only Sunrise).
+    // Протоколы упражнений (protocols.cs: saveProtocol / getLastP / getAll / getSall).
+    QString insertProtocol(const QString &patientId, const QString &uprid, const QString &header, const QString &body, QString *errorText);
+    bool updateProtocolBody(const QString &protocolId, const QString &body, QString *errorText = nullptr);
+    std::optional<StoredProtocol> loadProtocol(const QString &protocolId);
+    QString lastProtocolId(const QString &patientId, const QString &uprid);
+    QList<StoredProtocol> loadPatientProtocolRecords(const QString &patientId);
+    // Порядок getAll: ecurrent, uprid, id; шапка — у первой записи каждого упражнения.
+    QList<ExProtocol::Entry> loadPatientProtocolEntries(const QString &patientId, bool withProcess = true);
+    bool hasPatientProtocols(const QString &patientId);
     QString loadPatientProtocols(const QString &patientId);
     QString loadPatientProtocolsForExport(const QString &patientId, const QString &role, const QString &patientDataHeader);
     QStringList loadPatientProtocolRecordIds(const QString &patientId);

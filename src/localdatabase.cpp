@@ -118,6 +118,14 @@ bool LocalDatabase::ensureSchema() {
         "tname TEXT NOT NULL,"
         "font TEXT NOT NULL,"
         "data TEXT NOT NULL"
+        ")",
+        "CREATE TABLE IF NOT EXISTS protocols ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "userid TEXT NOT NULL,"
+        "uprid TEXT NOT NULL,"
+        "pr TEXT NOT NULL,"
+        "ecurrent INTEGER NOT NULL DEFAULT 1,"
+        "hdr TEXT NOT NULL DEFAULT ''"
         ")"
     };
     for (const char *sql : statements) {
@@ -162,7 +170,24 @@ bool LocalDatabase::ensureSchema() {
         return false;
     }
 
+    const QList<QStringList> protocolColumns = queryRows("PRAGMA table_info(protocols)");
+    auto hasProtocolColumn = [&](const QString &name) {
+        for (const QStringList &column : protocolColumns) {
+            if (column.size() >= 2 && column.at(1) == name) {
+                return true;
+            }
+        }
+        return false;
+    };
+    if (!hasProtocolColumn(QStringLiteral("ecurrent")) && !exec("ALTER TABLE protocols ADD COLUMN ecurrent INTEGER NOT NULL DEFAULT 1")) {
+        return false;
+    }
+    if (!hasProtocolColumn(QStringLiteral("hdr")) && !exec("ALTER TABLE protocols ADD COLUMN hdr TEXT NOT NULL DEFAULT ''")) {
+        return false;
+    }
+
     exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_login ON users(login)");
+    exec("CREATE INDEX IF NOT EXISTS idx_protocols_userid ON protocols(userid)");
 
     return true;
 }

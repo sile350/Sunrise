@@ -59,6 +59,7 @@ public:
                 if (!m_stack.isEmpty()) {
                     m_state = m_stack.pop();
                 }
+                m_pendingSkip = 0;
                 m_groupStart = false;
                 ++i;
                 continue;
@@ -182,8 +183,10 @@ private:
         } else if (word == "emspace" || word == "enspace" || word == "qmspace") {
             appendChar(QChar(' '));
         } else if (word == "u" && hasParam) {
-            appendChar(QChar(static_cast<ushort>(param < 0 ? param + 65536 : param)));
-            m_pendingSkip = m_state.unicodeSkip;
+            if (!m_state.skip) {
+                appendChar(QChar(static_cast<ushort>(param < 0 ? param + 65536 : param)));
+                m_pendingSkip = m_state.unicodeSkip;
+            }
         } else if (word == "uc" && hasParam) {
             m_state.unicodeSkip = qMax(0, param);
         } else if (word == "ansicpg" && hasParam) {

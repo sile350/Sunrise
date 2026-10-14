@@ -237,14 +237,7 @@ bool Repository::savePatientAnamnesis(QString *patientId, const QString &license
     QString dto;
     extractPatientFields(plainText, nullptr, nullptr, &diag, &dto);
     const bool isNewPatient = !patientId || patientId->isEmpty();
-    if (isNewPatient
-        && (fio.trimmed().size() < 3 || dr.trimmed().isEmpty() || dto.trimmed().isEmpty() || diag.trimmed().isEmpty())) {
-        if (errorText) {
-            *errorText = "Заполните в анамнезе поля «Ф.И.О. пациента», «Дата рождения», «Дата обращения» и «Диагноз».";
-        }
-        return false;
-    }
-    if (fio.trimmed().size() < 3) {
+    if (fio.trimmed().isEmpty()) {
         if (errorText) {
             *errorText = "Заполните Ф.И.О. пациента в анамнезе.";
         }
@@ -307,6 +300,7 @@ bool Repository::deletePatient(const QString &patientId, QString *errorText) {
         }
         return false;
     }
+    m_local.exec("DELETE FROM protocols WHERE userid='" + LocalDatabase::escape(patientId) + "'");
     return true;
 }
 QString Repository::defaultAnamnesisTemplate() const {
@@ -482,15 +476,105 @@ bool Repository::patientMatchesSearch(const QString &fio, const QString &search)
     return fio.contains(search, Qt::CaseInsensitive);
 }
 
-QString Repository::loadPatientProtocols(const QString &) {
-    return {};
+QString Repository::insertProtocol(const QString &patientId, const QString &uprid, const QString &header,
+                                   const QString &body, QString *errorText) {
+    const QString sql = "INSERT INTO protocols(userid,uprid,pr,ecurrent,hdr) VALUES('" + LocalDatabase::escape(patientId)
+        + "','" + LocalDatabase::escape(uprid) + "','" + LocalDatabase::escape(body) + "',1,'"
+        + LocalDatabase::escape(header) + "')";
+    if (!m_local.exec(sql)) {
+        if (errorText) {
+            *errorText = m_local.lastError();
+        }
+        return {};
+    }
+    return QString::number(m_local.lastInsertId());
 }
 
-QString Repository::loadPatientProtocolsForExport(const QString &, const QString &, const QString &) {
-    return {};
+bool Repository::updateProtocolBody(const QString &protocolId, const QString &body, QString *errorText) {
+    if (!m_local.exec("UPDATE protocols SET pr='" + LocalDatabase::escape(body) + "' WHERE id="
+                      + QString::number(protocolId.toLongLong()))) {
+        if (errorText) {
+            *errorText = m_local.lastError();
+        }
+        return false;
+    }
+    return true;
 }
 
-QStringList Repository::loadPatientProtocolRecordIds(const QString &) {
-    return {};
+std::optional<StoredProtocol> Repository::loadProtocol(const QString &protocolId) {
+    const QList<QStringList> rows = m_local.queryRows(
+        "SELECT id,uprid,hdr,pr FROM protocols WHERE id=" + QString::number(protocolId.toLongLong()));
+    if (rows.isEmpty() || rows.first().size() < 4) {
+        return std::nullopt;
+    }
+    const QStringList &r = rows.first();
+    return StoredProtocol{r.at(0), r.at(1), r.at(2), r.at(3)};
+}
+
+QString Repository::lastProtocolId(const QString &patientId, const QString &uprid) {
+    return m_local.queryScalar("SELECT id FROM protocols WHERE userid='" + LocalDatabase::escape(patientId)
+                               + "' AND uprid='" + LocalDatabase::escape(uprid) + "' ORDER BY id DESC LIMIT 1");
+}
+
+QList<StoredProtocol> Repository::loadPatientProtocolRecords(const QString &patientId) {
+    QList<StoredProtocol> out;
+    const QList<QStringList> rows = m_local.queryRows(
+        "SELECT id,uprid,hdr,pr FROM protocols WHERE userid='" + LocalDatabase::escape(patientId)
+        + "' ORDER BY ecurrent,uprid,hdr,id");
+    for (const QStringList &r : rows) {
+        if (r.size() >= 4) {
+            out.append({r.at(0), r.at(1), r.at(2), r.at(3)});
+        }
+    }
+    return out;
+}
+
+QList<ExProtocol::Entry> Repository::loadPatientProtocolEntries(const QString &patientId, bool withProcess) {
+    QList<ExProtocol::Entry> entries;
+    QString lastGroup;
+    for (const StoredProtocol &p : loadPatientProtocolRecords(patientId)) {
+        const QString header = p.header.isEmpty() ? ExProtocol::defaultHeaderPath(p.uprid) : p.header;
+        ExProtocol::Entry e;
+        e.id = p.id;
+        e.uprid = p.uprid;
+        e.record = ExProtocol::parseStoredBody(p.body);
+        e.withProcess = withProcess;
+        const QString group = p.uprid + QLatin1Char('|') + header;
+        if (group != lastGroup) {
+            e.header = ExProtocol::loadHeader(header);
+            lastGroup = group;
+        }
+        entries.append(e);
+    }
+    return entries;
+}
+
+bool Repository::hasPatientProtocols(const QString &patientId) {
+    if (patientId.isEmpty()) {
+        return false;
+    }
+    return !m_local.queryScalar("SELECT id FROM protocols WHERE userid='" + LocalDatabase::escape(patientId) + "' LIMIT 1")
+                .isEmpty();
+}
+
+QString Repository::loadPatientProtocols(const QString &patientId) {
+    return ExProtocol::entriesHtml(loadPatientProtocolEntries(patientId));
+}
+
+QString Repository::loadPatientProtocolsForExport(const QString &patientId, const QString &role, const QString &patientDataHeader) {
+    // getSall: «для пациента» — без таблицы процесса (всё после <!--s-->).
+    const QList<ExProtocol::Entry> entries = loadPatientProtocolEntries(patientId, role != QLatin1String("p"));
+    if (entries.isEmpty()) {
+        return {};
+    }
+    return ExProtocol::documentHtml(patientDataHeader, entries);
+}
+
+QStringList Repository::loadPatientProtocolRecordIds(const QString &patientId) {
+    QStringList ids;
+    for (const StoredProtocol &p : loadPatientProtocolRecords(patientId)) {
+        ids << p.id;
+    }
+    return ids;
 }
 

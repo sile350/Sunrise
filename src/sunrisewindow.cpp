@@ -1,7 +1,10 @@
 #include "sunrisewindow.h"
 #include "appsettings.h"
 #include "custommessagebox.h"
+#include "exercisehost.h"
+#include "protocoleditor.h"
 #include "rtfconverter.h"
+#include "uistyles.h"
 #include "usagejournal.h"
 
 #include <QClipboard>
@@ -214,123 +217,6 @@ QString dropdownArrowCss() {
         "  height: 6px;"
         "  image: url(\"%1\");"
     ).arg(path);
-}
-
-struct CheckBoxIndicatorPaths {
-    QString unchecked;
-    QString checked;
-    QString disabledUnchecked;
-    QString disabledChecked;
-};
-
-struct RadioIndicatorPaths {
-    QString unchecked;
-    QString checked;
-    QString disabledUnchecked;
-    QString disabledChecked;
-};
-
-CheckBoxIndicatorPaths ensureCheckBoxIndicatorImages() {
-    static CheckBoxIndicatorPaths paths;
-    if (!paths.unchecked.isEmpty()) {
-        return paths;
-    }
-    const QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-    const auto makeIndicator = [&](bool checked, bool disabled, const QString &fileName) {
-        const QString filePath = QDir(tempDir).filePath(fileName);
-        if (!QFile::exists(filePath)) {
-            QPixmap pixmap(13, 13);
-            pixmap.fill(Qt::transparent);
-            QPainter painter(&pixmap);
-            painter.setRenderHint(QPainter::Antialiasing, false);
-            const QColor borderColor = disabled ? QColor(0xa0, 0xa0, 0xa0) : QColor(0x80, 0x80, 0x80);
-            const QColor fillColor = disabled ? QColor(0xf4, 0xf4, 0xf4) : Qt::white;
-            painter.fillRect(QRect(1, 1, 11, 11), fillColor);
-            painter.setPen(QPen(borderColor, 1));
-            painter.drawRect(QRect(1, 1, 11, 11));
-            if (checked) {
-                painter.setPen(QPen(disabled ? QColor(0x90, 0x90, 0x90) : QColor(0x22, 0x22, 0x22), 2));
-                painter.drawLine(3, 7, 5, 9);
-                painter.drawLine(5, 9, 10, 3);
-            }
-            pixmap.save(filePath, "PNG");
-        }
-        return QDir::fromNativeSeparators(filePath);
-    };
-    paths.unchecked = makeIndicator(false, false, QStringLiteral("sunrise_cb_unchecked.png"));
-    paths.checked = makeIndicator(true, false, QStringLiteral("sunrise_cb_checked.png"));
-    paths.disabledUnchecked = makeIndicator(false, true, QStringLiteral("sunrise_cb_disabled_unchecked.png"));
-    paths.disabledChecked = makeIndicator(true, true, QStringLiteral("sunrise_cb_disabled_checked.png"));
-    return paths;
-}
-
-RadioIndicatorPaths ensureRadioIndicatorImages() {
-    static RadioIndicatorPaths paths;
-    if (!paths.unchecked.isEmpty()) {
-        return paths;
-    }
-    const QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
-    const auto makeIndicator = [&](bool checked, bool disabled, const QString &fileName) {
-        const QString filePath = QDir(tempDir).filePath(fileName);
-        if (!QFile::exists(filePath)) {
-            QPixmap pixmap(13, 13);
-            pixmap.fill(Qt::transparent);
-            QPainter painter(&pixmap);
-            painter.setRenderHint(QPainter::Antialiasing, true);
-            const QColor borderColor = disabled ? QColor(0xa0, 0xa0, 0xa0) : QColor(0x80, 0x80, 0x80);
-            const QColor fillColor = disabled ? QColor(0xf4, 0xf4, 0xf4) : Qt::white;
-            painter.setPen(QPen(borderColor, 1));
-            painter.setBrush(fillColor);
-            painter.drawEllipse(QRectF(1.5, 1.5, 10, 10));
-            if (checked) {
-                painter.setPen(Qt::NoPen);
-                painter.setBrush(disabled ? QColor(0x90, 0x90, 0x90) : QColor(0x22, 0x22, 0x22));
-                painter.drawEllipse(QRectF(4.5, 4.5, 4, 4));
-            }
-            pixmap.save(filePath, "PNG");
-        }
-        return QDir::fromNativeSeparators(filePath);
-    };
-    paths.unchecked = makeIndicator(false, false, QStringLiteral("sunrise_rb_unchecked.png"));
-    paths.checked = makeIndicator(true, false, QStringLiteral("sunrise_rb_checked.png"));
-    paths.disabledUnchecked = makeIndicator(false, true, QStringLiteral("sunrise_rb_disabled_unchecked.png"));
-    paths.disabledChecked = makeIndicator(true, true, QStringLiteral("sunrise_rb_disabled_checked.png"));
-    return paths;
-}
-
-QString checkBoxIndicatorCss() {
-    const CheckBoxIndicatorPaths paths = ensureCheckBoxIndicatorImages();
-    return QStringLiteral(
-        "QCheckBox::indicator { width: 13px; height: 13px; }"
-        "QCheckBox::indicator:unchecked { image: url(\"%1\"); }"
-        "QCheckBox::indicator:checked { image: url(\"%2\"); }"
-        "QCheckBox::indicator:unchecked:disabled { image: url(\"%3\"); }"
-        "QCheckBox::indicator:checked:disabled { image: url(\"%4\"); }"
-    ).arg(paths.unchecked, paths.checked, paths.disabledUnchecked, paths.disabledChecked);
-}
-
-QString radioIndicatorCss() {
-    const RadioIndicatorPaths paths = ensureRadioIndicatorImages();
-    return QStringLiteral(
-        "QRadioButton::indicator { width: 13px; height: 13px; }"
-        "QRadioButton::indicator:unchecked { image: url(\"%1\"); }"
-        "QRadioButton::indicator:checked { image: url(\"%2\"); }"
-        "QRadioButton::indicator:unchecked:disabled { image: url(\"%3\"); }"
-        "QRadioButton::indicator:checked:disabled { image: url(\"%4\"); }"
-    ).arg(paths.unchecked, paths.checked, paths.disabledUnchecked, paths.disabledChecked);
-}
-
-QString panelCheckBoxStyleSheet() {
-    return QStringLiteral(
-        "QCheckBox, QRadioButton {"
-        "  background: transparent;"
-        "  color: #000000;"
-        "  font-family: 'Microsoft Sans Serif';"
-        "  font-size: 8.25pt;"
-        "  spacing: 4px;"
-        "}"
-        "QCheckBox:disabled, QRadioButton:disabled { color: rgba(0, 0, 0, 128); }"
-    ) + checkBoxIndicatorCss() + radioIndicatorCss();
 }
 
 void setPanelChildOpacity(QWidget *widget, bool enabled) {
@@ -1559,6 +1445,51 @@ void SunriseWindow::buildUi() {
     m_userOpenPatients = new ImageButton(m_panelAdmin);
     m_userOpenPatients->setGeometry(kAdminFormX + kAdminFormW - 80, 350, 80, 36);
 
+    // Как в «Инфанте»: настройка экранов в администрировании (data/настройки.txt, два_экрана=0/1).
+    m_screenSettingsTitle = new QLabel(QStringLiteral("Настройка экранов"), m_panelAdmin);
+    m_screenSettingsTitle->setGeometry(40, kAdminTitleY, 260, 24);
+    m_screenSettingsTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_dualScreenCheck = new QCheckBox(QStringLiteral("Два экрана"), m_panelAdmin);
+    m_dualScreenCheck->setGeometry(40, kAdminTitleY + 34, 260, 28);
+    m_dualScreenCheck->setToolTip(QStringLiteral(
+        "Включено: экран пациента открывается на втором мониторе, врач видит зеркало.\n"
+        "Выключено: упражнение идёт на мониторе врача, сверху — панель управления врача."));
+    connect(m_dualScreenCheck, &QCheckBox::toggled, this, [this](bool on) { applyDualScreenSetting(on); });
+
+    // Переключатель режима в шапке окна.
+    m_screenModeSwitch = new QWidget(m_root);
+    m_screenModeSwitch->setGeometry(1150, 12, 230, 32);
+    m_screenModeSwitch->setToolTip(QStringLiteral("Режим экранов: один монитор или отдельный монитор пациента"));
+    {
+        auto *lay = new QHBoxLayout(m_screenModeSwitch);
+        lay->setContentsMargins(0, 0, 0, 0);
+        lay->setSpacing(0);
+        const QString base = QStringLiteral(
+            "QPushButton { font-family: 'Microsoft Sans Serif'; font-size: 10pt; font-weight: bold; color: #5a2d0c;"
+            " background: rgba(255, 255, 255, 110); border: 1px solid #8a3f0c; padding: 3px 8px; %1 }"
+            "QPushButton:hover { background: rgba(255, 255, 255, 170); }"
+            "QPushButton:checked { background: #8a3f0c; color: white; }");
+        m_screenOneButton = new QPushButton(QStringLiteral("1 экран"), m_screenModeSwitch);
+        m_screenOneButton->setStyleSheet(base.arg(QStringLiteral(
+            "border-top-left-radius: 5px; border-bottom-left-radius: 5px; border-right: none;")));
+        m_screenTwoButton = new QPushButton(QStringLiteral("2 экрана"), m_screenModeSwitch);
+        m_screenTwoButton->setStyleSheet(base.arg(QStringLiteral(
+            "border-top-right-radius: 5px; border-bottom-right-radius: 5px;")));
+        for (QPushButton *b : {m_screenOneButton, m_screenTwoButton}) {
+            b->setCheckable(true);
+            b->setCursor(Qt::PointingHandCursor);
+            b->setFocusPolicy(Qt::NoFocus);
+            b->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+            lay->addWidget(b);
+        }
+        m_screenOneButton->setToolTip(QStringLiteral("Один экран: упражнение идёт на мониторе врача"));
+        m_screenTwoButton->setToolTip(QStringLiteral("Два экрана: экран пациента на втором мониторе"));
+        connect(m_screenOneButton, &QPushButton::clicked, this, [this]() { applyDualScreenSetting(false); });
+        connect(m_screenTwoButton, &QPushButton::clicked, this, [this]() { applyDualScreenSetting(true); });
+    }
+    m_screenModeSwitch->hide();
+    syncScreenModeControls();
+
     m_panelPatients = new QWidget(m_root);
     m_panelPatients->setGeometry(1920 / 2 - 879 / 2, 80, 879, 950);
     m_panelPatients->setAttribute(Qt::WA_StyledBackground, true);
@@ -1614,6 +1545,24 @@ void SunriseWindow::buildUi() {
     m_panelClinical = new WorkPanelWidget(m_workStack, QColor(0xf0, 0xf0, 0xf0));
     m_panelClinical->setGeometry(0, 0, 966, 968);
     m_clinical = new ClinicalBrowserController(m_panelClinical, this);
+
+    // Form1.pSelector("протоколы"): label5 + wprotocol поверх меню упражнений.
+    m_protocolsTitle = new QLabel(QStringLiteral("ПРОТОКОЛЫ ФИКСАЦИИ ВЫПОЛНЕНИЯ УПРАЖНЕНИЙ"), m_panelClinical);
+    {
+        QFont titleFont(QStringLiteral("Microsoft Sans Serif"));
+        titleFont.setPointSizeF(15);
+        titleFont.setBold(true);
+        m_protocolsTitle->setFont(titleFont);
+    }
+    m_protocolsTitle->setStyleSheet(QStringLiteral("background: transparent; color: #000000;"));
+    m_protocolsTitle->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+    m_protocolsTitle->adjustSize();
+    m_protocolsTitle->setGeometry(0, 70, m_panelClinical->width(), m_protocolsTitle->height());
+    m_protocolsTitle->hide();
+    m_protocolsView = new ProtocolEditor(m_panelClinical);
+    m_protocolsView->setObjectName(QStringLiteral("wprotocol"));
+    m_protocolsView->setGeometry(103, 174, 760, m_panelClinical->height() - 174 - 10);
+    m_protocolsView->hide();
 
     m_panelWork = new WorkPanelWidget(m_workStack);
     m_panelWork->setGeometry(0, 0, 965, 965);
@@ -2212,6 +2161,10 @@ void SunriseWindow::bindSignals() {
 
 void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
     const ScreenMode previousScreen = m_currentScreen;
+    closeExercise(false);
+    if (m_protocolsView) {
+        m_protocolsView->flushEdits();
+    }
     m_screenTransitionGuard = true;
     struct ScreenTransitionGuard {
         bool *flag = nullptr;
@@ -2299,6 +2252,11 @@ void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
     m_bBack->setVisible(false);
     m_bList->setVisible(workScreen);
     m_bExit->setVisible(!enter);
+    if (m_screenModeSwitch) {
+        syncScreenModeControls();
+        m_screenModeSwitch->setVisible(!enter);
+        m_screenModeSwitch->raise();
+    }
     m_bSave->setVisible(workScreen);
     m_bPrint->setVisible(workScreen);
     if (!workScreen && m_printPanel) {
@@ -2563,6 +2521,15 @@ void SunriseWindow::styleAdminScreen() {
     );
     m_adminLabel1->setStyleSheet(labelStyle);
     m_adminLabel2->setStyleSheet(labelStyle);
+    if (m_screenSettingsTitle) {
+        m_screenSettingsTitle->setStyleSheet(labelStyle);
+    }
+    if (m_dualScreenCheck) {
+        m_dualScreenCheck->setStyleSheet(
+            QStringLiteral("QCheckBox { color: white; font-family: 'Microsoft Sans Serif'; font-size: 12pt;"
+                           " background: transparent; spacing: 8px; }")
+            + checkBoxIndicatorCss());
+    }
     m_adminLabel2->ensurePolished();
     m_adminLabel2->adjustSize();
     m_userRole->setStyleSheet(QStringLiteral(
@@ -4166,7 +4133,7 @@ void SunriseWindow::raiseChromeWidgets() {
     const QWidgetList chromeWidgets = {
         m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp, m_workStack,
         m_bBack, m_bList, m_bExit, m_bSave, m_bPrint, m_bPicPrint, m_bUpload, m_bSettings, m_bInfo, m_bJournal,
-        m_bUpdate, m_bClose, m_bLine, m_bUp, m_patientTitle, m_userOpenPatients, m_summaryPanel
+        m_bUpdate, m_bClose, m_bLine, m_bUp, m_patientTitle, m_userOpenPatients, m_summaryPanel, m_screenModeSwitch
     };
     for (QWidget *widget : chromeWidgets) {
         if (widget && widget->isVisible()) {
@@ -4195,11 +4162,128 @@ void SunriseWindow::setupClinicalController() {
     m_clinical->setSummary(m_summaryPanel);
     m_clinical->setImageLoader([this](const QString &name) { return imagePath(name); });
     connect(m_clinical, &ClinicalBrowserController::helpIndexChanged, this, [this](const QString &help) {
-        if (isWorkScreen(m_currentScreen) && m_currentScreen != ScreenMode::Anamnesis) {
+        if (!m_exerciseHost && isWorkScreen(m_currentScreen) && m_currentScreen != ScreenMode::Anamnesis) {
             m_helpIndex = help;
         }
     });
     connect(m_clinical, &ClinicalBrowserController::programChanged, this, [this]() { tryAutoSaveProgram(); });
+    connect(m_clinical, &ClinicalBrowserController::exerciseRequested, this,
+            [this](const QString &menuId) { openExercise(menuId); });
+    connect(m_clinical, &ClinicalBrowserController::protocolsModeChanged, this, [this](bool on) {
+        showProtocolsScreen(on);
+        if (m_currentScreen == ScreenMode::Speech) {
+            m_helpIndex = m_clinical->helpIndex();
+        }
+    });
+}
+
+QString SunriseWindow::protocolsPatientLine() const {
+    QString fio = m_summaryPanel ? m_summaryPanel->patientFio() : QString();
+    if (fio.trimmed().isEmpty() && m_patientTitle) {
+        fio = m_patientTitle->text();
+    }
+    return QStringLiteral("ФИО: %1%2 Дата рождения: %3")
+        .arg(ExProtocol::escape(fio.trimmed()), QStringLiteral("&nbsp;").repeated(7),
+             ExProtocol::escape(currentPatientBirthDate()));
+}
+
+// Form1.pSelector("протоколы"): getAll(pid) или «Пока ни одного протокола не сформировано».
+void SunriseWindow::showProtocolsScreen(bool on) {
+    if (!m_protocolsView) {
+        return;
+    }
+    m_protocolsView->flushEdits();
+    if (on) {
+        const QList<ExProtocol::Entry> entries = m_currentPatientId.isEmpty()
+                                                     ? QList<ExProtocol::Entry>()
+                                                     : m_repository.loadPatientProtocolEntries(m_currentPatientId);
+        if (entries.isEmpty()) {
+            m_protocolsView->showMessage(QStringLiteral("Пока ни одного протокола не сформировано"));
+        } else {
+            m_protocolsView->showEntries(QString(), entries, false);
+        }
+        m_protocolsView->verticalScrollBar()->setValue(0);
+    }
+    m_protocolsTitle->setVisible(on);
+    m_protocolsView->setVisible(on);
+    if (on) {
+        m_protocolsTitle->raise();
+        m_protocolsView->raise();
+    }
+}
+
+void SunriseWindow::applyDualScreenSetting(bool enabled) {
+    AppSettings::setDualScreenEnabled(enabled);
+    syncScreenModeControls();
+    if (m_exerciseHost) {
+        m_exerciseHost->setDualScreenEnabled(enabled);
+    }
+}
+
+void SunriseWindow::syncScreenModeControls() {
+    const bool dual = AppSettings::dualScreenEnabled();
+    if (m_dualScreenCheck) {
+        QSignalBlocker blocker(m_dualScreenCheck);
+        m_dualScreenCheck->setChecked(dual);
+    }
+    if (m_screenOneButton && m_screenTwoButton) {
+        m_screenOneButton->setChecked(!dual);
+        m_screenTwoButton->setChecked(dual);
+    }
+}
+
+void SunriseWindow::openExercise(const QString &menuId) {
+    const ExerciseRuntime rt = resolveMenuIdToRuntime(menuId);
+    if (!rt.valid) {
+        CustomMessageBox::showInfo(this, QStringLiteral("Упражнение %1 пока не реализовано.").arg(menuId));
+        return;
+    }
+    closeExercise(false);
+    ExerciseContext ctx;
+    ctx.patientId = m_currentPatientId;
+    ctx.patientFio = m_summaryPanel ? m_summaryPanel->patientFio() : QString();
+    if (ctx.patientFio.trimmed().isEmpty() && m_patientTitle) {
+        ctx.patientFio = m_patientTitle->text();
+    }
+    ctx.patientBirthDate = currentPatientBirthDate();
+    ctx.specialistFio = m_session ? m_session->fio : QString();
+    ctx.repository = &m_repository;
+    m_exerciseHost = new ExerciseHost(rt, ctx, m_root);
+    m_exerciseHost->setGeometry(5, 105, 1910, 965);
+    m_exerciseHidSummary = m_summaryPanel && m_summaryPanel->isVisible();
+    if (m_workStack) {
+        m_workStack->hide();
+    }
+    if (m_summaryPanel) {
+        m_summaryPanel->hide();
+    }
+    m_exerciseHost->show();
+    m_exerciseHost->raise();
+    m_helpIndex = rt.helpFile;
+    connect(m_exerciseHost, &ExerciseHost::closeRequested, this, [this]() { closeExercise(true); });
+}
+
+void SunriseWindow::closeExercise(bool restoreWork) {
+    if (!m_exerciseHost) {
+        return;
+    }
+    ExerciseHost *host = m_exerciseHost;
+    m_exerciseHost = nullptr;
+    host->shutdown();
+    host->hide();
+    host->deleteLater();
+    if (restoreWork) {
+        if (isWorkScreen(m_currentScreen) && m_currentScreen != ScreenMode::Anamnesis) {
+            m_helpIndex = m_clinical->helpIndex();
+        }
+        if (m_workStack) {
+            m_workStack->show();
+        }
+        if (m_summaryPanel && m_exerciseHidSummary) {
+            m_summaryPanel->show();
+        }
+    }
+    m_exerciseHidSummary = false;
 }
 
 QString SunriseWindow::clinicalHtmlRoot() const {
@@ -4329,6 +4413,16 @@ QString SunriseWindow::assembleExportHtml(const ExportSelection &selection) {
     if (selection.program) {
         return programDocumentHtml(selection);
     }
+    if (selection.protocols) {
+        if (m_protocolsView) {
+            m_protocolsView->flushEdits();
+        }
+        // protocols.getSall: «Для пациента» — без таблиц процесса выполнения.
+        const QString role = m_printForSpecialistRb && m_printForSpecialistRb->isChecked() ? QStringLiteral("s") : QStringLiteral("p");
+        const QString header = QStringLiteral("<div align='center' style='font-size:20px'>Протоколы фиксации выполнения упражнений<br><br>%1</div><br>")
+                                   .arg(protocolsPatientLine());
+        return m_repository.loadPatientProtocolsForExport(m_currentPatientId, role, header);
+    }
     return {};
 }
 
@@ -4341,7 +4435,18 @@ void SunriseWindow::renderExportToPrinter(
     }
 
     QTextDocument doc;
+    if (selection.protocols) {
+        // Таблицы шириной 671px: страница в пикселях с полями, чтобы они не сжимались и не резались.
+        printer.setPageMargins(QMarginsF(15, 15, 15, 15), QPageLayout::Millimeter);
+        const QRectF page = printer.pageLayout().paintRect(QPageLayout::Millimeter);
+        const qreal width = ExProtocol::kTableWidth + 20;
+        doc.setPageSize(QSizeF(width, width * page.height() / page.width()));
+        doc.setDocumentMargin(10);
+    }
     doc.setHtml(assembledHtml);
+    if (selection.protocols) {
+        ExProtocol::tightenTables(&doc);
+    }
     doc.print(&printer);
 }
 
@@ -4363,7 +4468,7 @@ bool SunriseWindow::validateExportSelection(
         CustomMessageBox::showWarning(this, emptyMessage);
         return false;
     }
-    if (selection.protocols) {
+    if (selection.protocols && !m_repository.hasPatientProtocols(m_currentPatientId)) {
         CustomMessageBox::showInfo(this, QStringLiteral("Пока ни одного протокола не сформировано"));
         return false;
     }

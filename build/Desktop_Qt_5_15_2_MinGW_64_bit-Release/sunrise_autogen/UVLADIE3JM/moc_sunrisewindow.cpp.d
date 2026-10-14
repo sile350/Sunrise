@@ -85,6 +85,7 @@ D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunris
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qvarlengtharray.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qvector.h \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/qversiontagging.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtGui/QFont \
   D:/Qt/5.15.2/mingw81_64/include/QtGui/qbrush.h \
   D:/Qt/5.15.2/mingw81_64/include/QtGui/qcolor.h \
   D:/Qt/5.15.2/mingw81_64/include/QtGui/qcursor.h \
@@ -358,6 +359,7 @@ D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunris
   D:/projects/DokitLab/sunrise/src/apiclient.h \
   D:/projects/DokitLab/sunrise/src/appsettings.h \
   D:/projects/DokitLab/sunrise/src/clinicalbrowsercontroller.h \
+  D:/projects/DokitLab/sunrise/src/exerciseprotocol.h \
   D:/projects/DokitLab/sunrise/src/imagebutton.h \
   D:/projects/DokitLab/sunrise/src/localdatabase.h \
   D:/projects/DokitLab/sunrise/src/models.h \
