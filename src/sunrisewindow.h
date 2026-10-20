@@ -1,7 +1,6 @@
 #ifndef SUNRISEWINDOW_H
 #define SUNRISEWINDOW_H
 
-#include "appsettings.h"
 #include "clinicalbrowsercontroller.h"
 #include "imagebutton.h"
 #include "repository.h"
@@ -83,8 +82,6 @@ private:
     void setupClinicalController();
     void showProtocolsScreen(bool on);
     QString protocolsPatientLine() const;
-    void applyDualScreenSetting(bool enabled);
-    void syncScreenModeControls();
     void openExercise(const QString &menuId);
     void closeExercise(bool restoreWork);
     void layoutWorkAreaForMode(ScreenMode mode);
@@ -200,6 +197,8 @@ private:
     ImageButton *m_bUp = nullptr;
     ImageButton *m_bBack = nullptr;
     ImageButton *m_bList = nullptr;
+    // Form1.bind / ind.png: во время упражнения вместо списка пациентов (вверху слева).
+    ImageButton *m_indProgramBtn = nullptr;
     ImageButton *m_bExit = nullptr;
     ImageButton *m_bPicPrint = nullptr;
     ImageButton *m_bUpload = nullptr;
@@ -255,11 +254,6 @@ private:
     QComboBox *m_userRole = nullptr;
     ImageButton *m_userSaveButton = nullptr;
     ImageButton *m_userOpenPatients = nullptr;
-    QLabel *m_screenSettingsTitle = nullptr;
-    QCheckBox *m_dualScreenCheck = nullptr;
-    QWidget *m_screenModeSwitch = nullptr;
-    QPushButton *m_screenOneButton = nullptr;
-    QPushButton *m_screenTwoButton = nullptr;
     QString m_editUserId;
     bool m_userSaveInProgress = false;
     bool m_anamnesisSaveInProgress = false;

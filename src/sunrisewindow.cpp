@@ -1281,6 +1281,12 @@ void SunriseWindow::buildUi() {
     m_bBack->setGeometry(8, 12, 36, 34);
     m_bList = new ImageButton(m_root);
     m_bList->setGeometry(50, 12, 166, 34);
+    // Как Form1.bind: на месте списка пациентов, картинка ind.png «Индивид. програм. пациента».
+    m_indProgramBtn = new ImageButton(m_root);
+    m_indProgramBtn->setGeometry(50, 10, 252, 39);
+    m_indProgramBtn->setToolTip(QStringLiteral("Индивид. програм. пациента"));
+    m_indProgramBtn->setCursor(Qt::PointingHandCursor);
+    m_indProgramBtn->hide();
     m_bExit = new ImageButton(m_root);
     m_bExit->setGeometry(1683, 10, 36, 34);
     m_bPicPrint = new ImageButton(m_root);
@@ -1445,51 +1451,6 @@ void SunriseWindow::buildUi() {
     m_userOpenPatients = new ImageButton(m_panelAdmin);
     m_userOpenPatients->setGeometry(kAdminFormX + kAdminFormW - 80, 350, 80, 36);
 
-    // Как в «Инфанте»: настройка экранов в администрировании (data/настройки.txt, два_экрана=0/1).
-    m_screenSettingsTitle = new QLabel(QStringLiteral("Настройка экранов"), m_panelAdmin);
-    m_screenSettingsTitle->setGeometry(40, kAdminTitleY, 260, 24);
-    m_screenSettingsTitle->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_dualScreenCheck = new QCheckBox(QStringLiteral("Два экрана"), m_panelAdmin);
-    m_dualScreenCheck->setGeometry(40, kAdminTitleY + 34, 260, 28);
-    m_dualScreenCheck->setToolTip(QStringLiteral(
-        "Включено: экран пациента открывается на втором мониторе, врач видит зеркало.\n"
-        "Выключено: упражнение идёт на мониторе врача, сверху — панель управления врача."));
-    connect(m_dualScreenCheck, &QCheckBox::toggled, this, [this](bool on) { applyDualScreenSetting(on); });
-
-    // Переключатель режима в шапке окна.
-    m_screenModeSwitch = new QWidget(m_root);
-    m_screenModeSwitch->setGeometry(1150, 12, 230, 32);
-    m_screenModeSwitch->setToolTip(QStringLiteral("Режим экранов: один монитор или отдельный монитор пациента"));
-    {
-        auto *lay = new QHBoxLayout(m_screenModeSwitch);
-        lay->setContentsMargins(0, 0, 0, 0);
-        lay->setSpacing(0);
-        const QString base = QStringLiteral(
-            "QPushButton { font-family: 'Microsoft Sans Serif'; font-size: 10pt; font-weight: bold; color: #5a2d0c;"
-            " background: rgba(255, 255, 255, 110); border: 1px solid #8a3f0c; padding: 3px 8px; %1 }"
-            "QPushButton:hover { background: rgba(255, 255, 255, 170); }"
-            "QPushButton:checked { background: #8a3f0c; color: white; }");
-        m_screenOneButton = new QPushButton(QStringLiteral("1 экран"), m_screenModeSwitch);
-        m_screenOneButton->setStyleSheet(base.arg(QStringLiteral(
-            "border-top-left-radius: 5px; border-bottom-left-radius: 5px; border-right: none;")));
-        m_screenTwoButton = new QPushButton(QStringLiteral("2 экрана"), m_screenModeSwitch);
-        m_screenTwoButton->setStyleSheet(base.arg(QStringLiteral(
-            "border-top-right-radius: 5px; border-bottom-right-radius: 5px;")));
-        for (QPushButton *b : {m_screenOneButton, m_screenTwoButton}) {
-            b->setCheckable(true);
-            b->setCursor(Qt::PointingHandCursor);
-            b->setFocusPolicy(Qt::NoFocus);
-            b->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-            lay->addWidget(b);
-        }
-        m_screenOneButton->setToolTip(QStringLiteral("Один экран: упражнение идёт на мониторе врача"));
-        m_screenTwoButton->setToolTip(QStringLiteral("Два экрана: экран пациента на втором мониторе"));
-        connect(m_screenOneButton, &QPushButton::clicked, this, [this]() { applyDualScreenSetting(false); });
-        connect(m_screenTwoButton, &QPushButton::clicked, this, [this]() { applyDualScreenSetting(true); });
-    }
-    m_screenModeSwitch->hide();
-    syncScreenModeControls();
-
     m_panelPatients = new QWidget(m_root);
     m_panelPatients->setGeometry(1920 / 2 - 879 / 2, 80, 879, 950);
     m_panelPatients->setAttribute(Qt::WA_StyledBackground, true);
@@ -1596,7 +1557,7 @@ void SunriseWindow::buildUi() {
 
     const QWidgetList chromeWidgets = {
         m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp, m_workStack,
-        m_bBack, m_bList, m_bExit, m_bSave, m_bPrint, m_bSettings, m_bInfo, m_bJournal, m_bUpdate,
+        m_bBack, m_bList, m_indProgramBtn, m_bExit, m_bSave, m_bPrint, m_bSettings, m_bInfo, m_bJournal, m_bUpdate,
         m_bClose, m_bLine, m_bUp, m_patientTitle, m_userOpenPatients, m_summaryPanel
     };
     for (QWidget *widget : chromeWidgets) {
@@ -1878,6 +1839,7 @@ void SunriseWindow::applyLegacyStyle() {
     setImage(m_bUp, "up.png");
     setFromCandidates(m_bBack, {resourcePath("Назад.png")});
     setImage(m_bList, "plist.png");
+    setImage(m_indProgramBtn, "ind.png");
     setImage(m_bExit, "exit.png");
     setFromCandidates(m_bPicPrint, {resourcePath("Печать (1).png")});
     setFromCandidates(m_bUpload, {resourcePath("Загрузить файл.png")});
@@ -1996,6 +1958,11 @@ void SunriseWindow::bindSignals() {
     });
     connect(m_bBack, &ImageButton::clicked, this, [this]() { navigateBack(); });
     connect(m_bList, &ImageButton::clicked, this, [this]() { setScreen(ScreenMode::Patients); });
+    connect(m_indProgramBtn, &ImageButton::clicked, this, [this]() {
+        // Как Form1.bind_Click: закрыть упражнение и вернуться к вкладке «Упражнения».
+        closeExercise(true);
+        setScreen(ScreenMode::Speech);
+    });
     connect(m_pAna, &ImageButton::clicked, this, [this]() { setScreen(ScreenMode::Anamnesis); });
     connect(m_pRisk, &ImageButton::clicked, this, [this]() { setScreen(ScreenMode::RiskAssessment); });
     connect(m_pCorr, &ImageButton::clicked, this, [this]() { setScreen(ScreenMode::Correction); });
@@ -2276,13 +2243,15 @@ void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
     m_userOpenPatients->raise();
 
     m_bBack->setVisible(false);
-    m_bList->setVisible(workScreen);
-    m_bExit->setVisible(!enter);
-    if (m_screenModeSwitch) {
-        syncScreenModeControls();
-        m_screenModeSwitch->setVisible(!enter);
-        m_screenModeSwitch->raise();
+    const bool exerciseOpen = m_exerciseHost != nullptr;
+    m_bList->setVisible(workScreen && !exerciseOpen);
+    if (m_indProgramBtn) {
+        m_indProgramBtn->setVisible(exerciseOpen);
+        if (exerciseOpen) {
+            m_indProgramBtn->raise();
+        }
     }
+    m_bExit->setVisible(!enter);
     m_bSave->setVisible(workScreen);
     m_bPrint->setVisible(workScreen);
     if (!workScreen && m_printPanel) {
@@ -2547,15 +2516,6 @@ void SunriseWindow::styleAdminScreen() {
     );
     m_adminLabel1->setStyleSheet(labelStyle);
     m_adminLabel2->setStyleSheet(labelStyle);
-    if (m_screenSettingsTitle) {
-        m_screenSettingsTitle->setStyleSheet(labelStyle);
-    }
-    if (m_dualScreenCheck) {
-        m_dualScreenCheck->setStyleSheet(
-            QStringLiteral("QCheckBox { color: white; font-family: 'Microsoft Sans Serif'; font-size: 12pt;"
-                           " background: transparent; spacing: 8px; }")
-            + checkBoxIndicatorCss());
-    }
     m_adminLabel2->ensurePolished();
     m_adminLabel2->adjustSize();
     m_userRole->setStyleSheet(QStringLiteral(
@@ -4070,6 +4030,7 @@ void SunriseWindow::installToolbarTooltips() {
         {m_bPrint, QStringLiteral("Печать")},
         {m_bSave, QStringLiteral("Сохранить")},
         {m_bExit, QStringLiteral("Выход")},
+        {m_indProgramBtn, QStringLiteral("Индивид. програм. пациента")},
         {m_boldButton, QStringLiteral("Жирный")},
         {m_underlineButton, QStringLiteral("Подчеркивание")},
         {m_bInfo, QStringLiteral("Руководство пользователя и информация о программе")},
@@ -4227,14 +4188,21 @@ void SunriseWindow::writeProfileConfig(const QString &profileName, int fontSize)
 void SunriseWindow::setWorkChromeVisible(bool visible) {
     const bool showSettings = visible && settingsAvailable();
     const bool showSavePrint = visible && isWorkScreen(m_currentScreen);
+    const bool exerciseOpen = m_exerciseHost != nullptr;
     const QWidgetList chromeWidgets = {
-        m_bList, m_bExit, m_bInfo,
+        m_bExit, m_bInfo,
         m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp, m_patientTitle, m_userOpenPatients
     };
     for (QWidget *widget : chromeWidgets) {
         if (widget) {
             widget->setVisible(visible);
         }
+    }
+    if (m_bList) {
+        m_bList->setVisible(visible && !exerciseOpen);
+    }
+    if (m_indProgramBtn) {
+        m_indProgramBtn->setVisible(visible && exerciseOpen);
     }
     if (m_bSave) {
         m_bSave->setVisible(showSavePrint);
@@ -4265,8 +4233,8 @@ void SunriseWindow::setWorkChromeVisible(bool visible) {
 void SunriseWindow::raiseChromeWidgets() {
     const QWidgetList chromeWidgets = {
         m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp, m_workStack,
-        m_bBack, m_bList, m_bExit, m_bSave, m_bPrint, m_bPicPrint, m_bUpload, m_bSettings, m_bInfo, m_bJournal,
-        m_bUpdate, m_bClose, m_bLine, m_bUp, m_patientTitle, m_userOpenPatients, m_summaryPanel, m_screenModeSwitch
+        m_bBack, m_bList, m_indProgramBtn, m_bExit, m_bSave, m_bPrint, m_bPicPrint, m_bUpload, m_bSettings, m_bInfo, m_bJournal,
+        m_bUpdate, m_bClose, m_bLine, m_bUp, m_patientTitle, m_userOpenPatients, m_summaryPanel
     };
     for (QWidget *widget : chromeWidgets) {
         if (widget && widget->isVisible()) {
@@ -4345,26 +4313,6 @@ void SunriseWindow::showProtocolsScreen(bool on) {
     }
 }
 
-void SunriseWindow::applyDualScreenSetting(bool enabled) {
-    AppSettings::setDualScreenEnabled(enabled);
-    syncScreenModeControls();
-    if (m_exerciseHost) {
-        m_exerciseHost->setDualScreenEnabled(enabled);
-    }
-}
-
-void SunriseWindow::syncScreenModeControls() {
-    const bool dual = AppSettings::dualScreenEnabled();
-    if (m_dualScreenCheck) {
-        QSignalBlocker blocker(m_dualScreenCheck);
-        m_dualScreenCheck->setChecked(dual);
-    }
-    if (m_screenOneButton && m_screenTwoButton) {
-        m_screenOneButton->setChecked(!dual);
-        m_screenTwoButton->setChecked(dual);
-    }
-}
-
 void SunriseWindow::openExercise(const QString &menuId) {
     const ExerciseRuntime rt = resolveMenuIdToRuntime(menuId);
     if (!rt.valid) {
@@ -4398,7 +4346,14 @@ void SunriseWindow::openExercise(const QString &menuId) {
         updateSettingsButtonVisibility();
     });
     updateSettingsButtonVisibility();
-    m_exerciseHost->setDualScreenEnabled(AppSettings::dualScreenEnabled());
+    // Form1: bplist скрыт, bind (ind.png) на его месте — вверху слева.
+    if (m_bList) {
+        m_bList->hide();
+    }
+    if (m_indProgramBtn) {
+        m_indProgramBtn->show();
+        m_indProgramBtn->raise();
+    }
 }
 
 void SunriseWindow::closeExercise(bool restoreWork) {
@@ -4414,6 +4369,9 @@ void SunriseWindow::closeExercise(bool restoreWork) {
     host->hide();
     host->deleteLater();
     updateSettingsButtonVisibility();
+    if (m_indProgramBtn) {
+        m_indProgramBtn->hide();
+    }
     if (restoreWork) {
         if (isWorkScreen(m_currentScreen) && m_currentScreen != ScreenMode::Anamnesis) {
             m_helpIndex = m_clinical->helpIndex();
@@ -4423,6 +4381,10 @@ void SunriseWindow::closeExercise(bool restoreWork) {
         }
         if (m_summaryPanel && m_exerciseHidSummary) {
             m_summaryPanel->show();
+        }
+        if (m_bList && isWorkScreen(m_currentScreen)) {
+            m_bList->show();
+            m_bList->raise();
         }
     }
     m_exerciseHidSummary = false;

@@ -8,6 +8,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QPalette>
 #include <QRadioButton>
 #include <QRegularExpression>
 #include <QResizeEvent>
@@ -105,8 +106,13 @@ void clearLayout(QLayout *layout) {
 ScoringForm::ScoringForm(QWidget *parent) : QWidget(parent) {
     const QFont f = ExProtocol::textFont();
     setFont(f);
+    setAutoFillBackground(true);
+    QPalette pal = palette();
+    pal.setColor(QPalette::Window, QColor(0xf9, 0xf9, 0xf9));
+    setPalette(pal);
     setStyleSheet(panelCheckBoxStyleSheet()
-                  + QStringLiteral("QLabel { font-family: '%1'; font-size: %2pt; color: #000000; }")
+                  + QStringLiteral("QWidget { background: #f9f9f9; }"
+                                   "QLabel { font-family: '%1'; font-size: %2pt; color: #000000; background: transparent; }")
                         .arg(f.family())
                         .arg(f.pointSize()));
     m_layout = new QVBoxLayout(this);

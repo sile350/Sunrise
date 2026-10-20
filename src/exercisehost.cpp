@@ -1,6 +1,5 @@
 #include "exercisehost.h"
 
-#include "appsettings.h"
 #include "approotpaths.h"
 #include "coverpanel.h"
 #include "custommessagebox.h"
@@ -80,18 +79,6 @@ ExerciseHost::ExerciseHost(const ExerciseRuntime &runtime, const ExerciseContext
     m_title->setFont(tf);
     m_title->setGeometry(10, 8, kLeftWidth + 900, 26);
 
-    m_back = new ImageButton(this);
-    // Та же кнопка, что «Назад» в шапке главного окна (resources/Назад.png, 36x34).
-    m_back->setImagePath(ExAssets::resourceImage(QStringLiteral("Назад.png")));
-    m_back->setToolTip(QStringLiteral("Назад к списку упражнений"));
-    m_back->setGeometry(1863, 2, 36, 34);
-    m_back->setCursor(Qt::PointingHandCursor);
-    connect(m_back, &ImageButton::clicked, this, [this]() {
-        shutdown();
-        emit closeRequested();
-    });
-
-    m_dualScreen = AppSettings::dualScreenEnabled();
     m_patientScreenBtn = new QPushButton(QStringLiteral("Экран пациента"), this);
     m_patientScreenBtn->setToolTip(QStringLiteral("Вернуться к выполнению упражнения на экране пациента"));
     m_patientScreenBtn->setCursor(Qt::PointingHandCursor);
@@ -103,15 +90,9 @@ ExerciseHost::ExerciseHost(const ExerciseRuntime &runtime, const ExerciseContext
     m_patientScreenBtn->move(1810 - m_patientScreenBtn->width(), 4);
     m_patientScreenBtn->hide();
     connect(m_patientScreenBtn, &QPushButton::clicked, this, &ExerciseHost::presentPatient);
-    connect(qGuiApp, &QGuiApplication::screenAdded, this, [this]() {
-        if (m_dualScreen) {
-            representPatient();
-        }
-    });
+    connect(qGuiApp, &QGuiApplication::screenAdded, this, [this]() { representPatient(); });
     connect(qGuiApp, &QGuiApplication::screenRemoved, this, [this]() {
-        if (m_dualScreen) {
-            QTimer::singleShot(0, this, &ExerciseHost::representPatient);
-        }
+        QTimer::singleShot(0, this, &ExerciseHost::representPatient);
     });
 
     if (m_rt.coverKind == ExCoverKind::C114) {
@@ -164,11 +145,14 @@ void ExerciseHost::buildLeftColumn() {
     m_leftScroll->setWidgetResizable(true);
     m_leftScroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_leftScroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    m_leftScroll->setStyleSheet(QStringLiteral("QScrollArea { background: #f9f9f9; border: none; }"));
     auto *inner = new QWidget();
+    inner->setStyleSheet(QStringLiteral("background: #f9f9f9;"));
     auto *lay = new QVBoxLayout(inner);
     lay->setContentsMargins(24, 10, 10, 10);
     lay->setSpacing(10);
-    const QString browserStyle = QStringLiteral("QTextBrowser { background: #f8f8f8; border: none; }");
+    // Фон как у остальной области упражнения (#f9f9f9), не отдельное «поле» #f8f8f8.
+    const QString browserStyle = QStringLiteral("QTextBrowser { background: #f9f9f9; border: none; }");
     m_or = new QTextBrowser(inner);
     m_or->setOpenLinks(false);
     m_or->setOpenExternalLinks(false);
@@ -260,11 +244,17 @@ void ExerciseHost::loadLeftHtml() {
 
 QString ExerciseHost::composeOrHtml() const {
     QString h = m_orRaw;
+    // Фон body как у панели упражнения.
+    h.replace(QRegularExpression(QStringLiteral("bgcolor\\s*=\\s*['\"][^'\"]*['\"]"),
+                                 QRegularExpression::CaseInsensitiveOption),
+              QStringLiteral("bgcolor=\"#f9f9f9\""));
     static const char *ids[3] = {"method", "procedure", "analis"};
     for (int i = 0; i < 3; ++i) {
         const QRegularExpression re(QStringLiteral("<a\\s+id=['\"]%1['\"][^>]*>").arg(QLatin1String(ids[i])),
                                     QRegularExpression::CaseInsensitiveOption);
-        h.replace(re, QStringLiteral("<a href=\"#%1\" style=\"text-decoration:none;color:#000000;font-size:16px\">").arg(QLatin1String(ids[i])));
+        // Как в оригинале: заголовки ссылок подчёркнуты.
+        h.replace(re, QStringLiteral("<a href=\"#%1\" style=\"text-decoration:underline;color:#000000;font-size:16px\">")
+                          .arg(QLatin1String(ids[i])));
     }
     for (int i = 2; i >= 0; --i) {
         const QRegularExpression re(QStringLiteral("<div\\s+id=['\"]div%1['\"][^>]*>").arg(i + 1),
@@ -280,7 +270,11 @@ QString ExerciseHost::composeOrHtml() const {
         } else if (i == 1) {
             end = h.indexOf(QStringLiteral("<a href=\"#analis\""), start);
         } else {
-            end = h.lastIndexOf(QStringLiteral("</body>"), -1, Qt::CaseInsensitive);
+            // Не забирать <hr> вместе с блоком «Оценка результата» — линия должна быть всегда.
+            end = h.indexOf(QStringLiteral("<hr"), start, Qt::CaseInsensitive);
+            if (end < 0) {
+                end = h.lastIndexOf(QStringLiteral("</body>"), -1, Qt::CaseInsensitive);
+            }
         }
         if (end < 0) {
             end = h.size();
@@ -304,6 +298,13 @@ QString ExerciseHost::composeOrHtml() const {
         }
         h.insert(close + 4, QStringLiteral("</p>"));
         h.insert(a, QStringLiteral("<p style=\"margin:0 0 6px 0;text-indent:0\">"));
+    }
+    // Гарантировать горизонтальную линию после ссылок (даже если все блоки свёрнуты).
+    if (!h.contains(QStringLiteral("<hr"), Qt::CaseInsensitive)) {
+        const int bodyEnd = h.lastIndexOf(QStringLiteral("</body>"), -1, Qt::CaseInsensitive);
+        if (bodyEnd >= 0) {
+            h.insert(bodyEnd, QStringLiteral("<hr />\n"));
+        }
     }
     return h;
 }
@@ -701,9 +702,6 @@ void ExerciseHost::updateVisibility() {
         break;
     }
     updateScoreBlock();
-    if (m_patient && m_patient->isVisible()) {
-        refreshPatientControls();
-    }
     updatePatientScreenButton();
 }
 
@@ -713,12 +711,15 @@ bool ExerciseHost::isWrittenMode() const {
     case ExCoverKind::C122: return c->combo1->currentIndex() != 0;
     case ExCoverKind::C324: return c->combo1->currentIndex() == 1;
     case ExCoverKind::C123: return c->combo2->currentText() == QLatin1String("3");
-    case ExCoverKind::C114: return false;
+    case ExCoverKind::C114: return c->combo1 && c->combo1->currentText() == QLatin1String("2");
+    case ExCoverKind::C226: return c->combo1 && c->combo1->currentText() == QLatin1String("3");
     default: return false;
     }
 }
 
 bool ExerciseHost::usesPatientWindow() const {
+    // Как в оригинале: отдельный экран пациента только там, где есть uprSpace / зеркало.
+    // Текстовые/письменные режимы (инструкции 1.1.1, беседа ур.2, письменные варианты и т.п.) — только у врача.
     if (m_rt.coverKind == ExCoverKind::C1 || m_rt.engineKind == ExEngineKind::None) {
         return false;
     }
@@ -857,9 +858,6 @@ void ExerciseHost::syncDoctorLabels() {
 
 void ExerciseHost::updateCounters() {
     m_cover->setCounters(m_ecounter, m_ecorrect);
-    if (m_patient && m_patient->isVisible()) {
-        refreshPatientControls();
-    }
 }
 
 void ExerciseHost::onParamChanged(QComboBox *source) {
@@ -1040,15 +1038,7 @@ void ExerciseHost::onStop() {
     updateVisibility();
 }
 
-// ---------------- режим экранов ----------------
-
-void ExerciseHost::setDualScreenEnabled(bool enabled) {
-    if (m_dualScreen == enabled) {
-        return;
-    }
-    m_dualScreen = enabled;
-    representPatient();
-}
+// ---------------- экран пациента ----------------
 
 bool ExerciseHost::textSettingsAvailable() const {
     if (m_rt.coverKind == ExCoverKind::C1) {
@@ -1086,16 +1076,11 @@ void ExerciseHost::loadStandardTextDocument() {
     }
 }
 
-bool ExerciseHost::singleScreenActive() const {
-    return !m_dualScreen;
-}
-
 void ExerciseHost::representPatient() {
     if (!m_running || !m_patient) {
         updatePatientScreenButton();
         return;
     }
-    // Упражнение идёт: экран пациента переносится в текущий режим / на текущий набор мониторов.
     const bool wasShown = m_patient->isVisible() || m_doctorPanel;
     m_patient->hideDisplay();
     m_doctorPanel = false;
@@ -1111,18 +1096,8 @@ void ExerciseHost::presentPatient() {
         return;
     }
     m_doctorPanel = false;
-    if (singleScreenActive()) {
-        // Как в Инфанте: один экран — без отдельного окна, поверх основного окна под его шапкой.
-        constexpr int kMainHeaderHeight = 62;
-        QWidget *container = parentWidget() ? parentWidget() : this;
-        const QRect rect = container == this
-            ? this->rect()
-            : QRect(0, kMainHeaderHeight, container->width(), container->height() - kMainHeaderHeight);
-        m_patient->showEmbedded(container, rect);
-        refreshPatientControls();
-    } else {
-        m_patient->showOnSecondaryScreen();
-    }
+    // Всегда отдельное окно: второй монитор, а если его нет — основной (Esc → панель врача).
+    m_patient->showOnSecondaryScreen();
     updatePatientScreenButton();
 }
 
@@ -1141,69 +1116,12 @@ void ExerciseHost::updatePatientScreenButton() {
     if (!m_patientScreenBtn) {
         return;
     }
-    const bool show = m_running && usesPatientWindow() && m_patient && !m_patient->isVisible()
-        && (singleScreenActive() || !PatientWindow::secondaryScreen());
+    // Кнопка нужна, когда окно пациента скрыто (Esc / нет второго монитора).
+    const bool show = m_running && usesPatientWindow() && m_patient && !m_patient->isVisible();
     m_patientScreenBtn->setVisible(show);
     if (show) {
         m_patientScreenBtn->raise();
     }
-}
-
-// Один экран: на экране пациента — те же кнопки обложки, что сейчас доступны врачу
-// (Стоп, Дальше, Ещё раз, подсказки, Верно/Неверно...), счётчики и переход к панели врача.
-void ExerciseHost::refreshPatientControls() {
-    if (!m_patient || !m_patient->isSingleScreen()) {
-        return;
-    }
-    QWidget *bar = m_patient->controlBar();
-    QList<QWidget *> items;
-    CoverPanel *c = m_cover;
-    const auto mirror = [this, bar, &items](ImageButton *src) {
-        if (!src || src->isHidden() || !src->pixmap() || src->pixmap()->isNull()) {
-            return;
-        }
-        auto *b = new ImageButton(bar);
-        b->setPixmap(*src->pixmap());
-        b->setFixedSize(src->size());
-        b->setToolTip(src->toolTip());
-        b->setCursor(Qt::PointingHandCursor);
-        connect(b, &ImageButton::clicked, src, [src]() { emit src->clicked(); });
-        connect(b, &ImageButton::clicked, this, [this]() {
-            QTimer::singleShot(0, this, &ExerciseHost::refreshPatientControls);
-        });
-        items << b;
-    };
-    mirror(c->stopu);
-    for (ImageButton *b : {c->nextz, c->bagain, c->updateR, c->modePic, c->showp, c->showQuestion, c->explainBtn,
-                           c->showStory, c->metroBtn}) {
-        mirror(b);
-    }
-    for (ImageButton *b : c->conj) {
-        mirror(b);
-    }
-    mirror(c->dcorrect);
-    mirror(c->dincorrect);
-    if (c->lcounter && !c->lcounter->isHidden()) {
-        auto *counters = new QLabel(bar);
-        counters->setText(c->lcounter->text() + QStringLiteral("    ") + (c->lcorrect ? c->lcorrect->text() : QString()));
-        counters->setStyleSheet(QStringLiteral(
-            "color: black; font-family: 'Microsoft Sans Serif'; font-size: 11pt; background: transparent;"));
-        counters->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
-        counters->setFixedSize(counters->sizeHint().width(), 34);
-        items << counters;
-    }
-    auto *doctor = new QPushButton(QStringLiteral("Панель врача"), bar);
-    doctor->setToolTip(QStringLiteral("Перейти к панели врача, не останавливая упражнение (Esc)"));
-    doctor->setCursor(Qt::PointingHandCursor);
-    doctor->setFocusPolicy(Qt::NoFocus);
-    doctor->setStyleSheet(QStringLiteral(
-        "QPushButton { font-family: 'Microsoft Sans Serif'; font-size: 11pt; font-weight: bold; color: white;"
-        " background: #c8641e; border: 1px solid #8a3f0c; border-radius: 4px; padding: 5px 14px; }"
-        "QPushButton:hover { background: #d97a33; }"));
-    connect(doctor, &QPushButton::clicked, this, &ExerciseHost::showDoctorPanel);
-    doctor->setFixedSize(doctor->sizeHint().width(), 34);
-    items << doctor;
-    m_patient->setControlWidgets(items);
 }
 
 void ExerciseHost::onNext() {

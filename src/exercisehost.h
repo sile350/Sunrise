@@ -43,9 +43,6 @@ public:
 
     // Закрыть окно пациента, остановить метроном.
     void shutdown();
-    // Режим экранов (Администрирование / шапка): два экрана — пациент на втором мониторе,
-    // один экран — сцена пациента на весь монитор врача с панелью управления.
-    void setDualScreenEnabled(bool enabled);
 
     // Настройки текста (как bsettings в оригинале): 1.1.1 всегда; 1.1.4 — уровень «2».
     bool textSettingsAvailable() const;
@@ -99,12 +96,10 @@ private:
     bool usesPatientWindow() const;
     QString currentMaterialText(int combo) const;
     void updateVisibility();
-    // экран пациента в выбранном режиме
+    // экран пациента на втором мониторе (как в оригинале; без экрана пациента — не открывается)
     void presentPatient();
     void representPatient();
-    bool singleScreenActive() const;
     void showDoctorPanel();
-    void refreshPatientControls();
     void updatePatientScreenButton();
 
     ExerciseRuntime m_rt;
@@ -122,7 +117,6 @@ private:
     bool m_partly = false;
     QString m_protocolId;
     QLabel *m_title = nullptr;
-    ImageButton *m_back = nullptr;
     ImageButton *m_print = nullptr;
     QString m_orRaw;
     bool m_open[3] = {false, false, false};
@@ -146,8 +140,7 @@ private:
     bool m_hintShown = false;
     bool m_examplesOn = false;
     bool m_explainOn = false;
-    bool m_dualScreen = false;
-    bool m_doctorPanel = false; // один экран: упражнение идёт, врач временно вернулся к своей панели
+    bool m_doctorPanel = false; // второго монитора нет: врач временно скрыл окно пациента
     QPushButton *m_patientScreenBtn = nullptr;
 };
 

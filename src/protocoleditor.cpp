@@ -15,7 +15,7 @@ ProtocolEditor::ProtocolEditor(QWidget *parent) : QTextEdit(parent) {
     setTabChangesFocus(true);
     setUndoRedoEnabled(false);
     setFrameShape(QFrame::NoFrame);
-    setStyleSheet(QStringLiteral("QTextEdit { background: #f8f8f8; border: none; }"));
+    setStyleSheet(QStringLiteral("QTextEdit { background: #f9f9f9; border: none; }"));
     m_saveTimer = new QTimer(this);
     m_saveTimer->setSingleShot(true);
     m_saveTimer->setInterval(700);
