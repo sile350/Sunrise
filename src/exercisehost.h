@@ -49,10 +49,12 @@ public:
     QString textSettingsScope() const;
     QTextEdit *textSettingsEdit() const;
     void loadStandardTextDocument();
+    bool isRunning() const { return m_running; }
 
 signals:
     void closeRequested();
     void textSettingsAvailabilityChanged();
+    void runningChanged(bool running);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

@@ -1283,7 +1283,8 @@ void SunriseWindow::buildUi() {
     m_bList->setGeometry(50, 12, 166, 34);
     // Как Form1.bind: на месте списка пациентов, картинка ind.png «Индивид. програм. пациента».
     m_indProgramBtn = new ImageButton(m_root);
-    m_indProgramBtn->setGeometry(50, 10, 252, 39);
+    // ind.png 252×39 → уменьшено в 1.4 раза (~180×28).
+    m_indProgramBtn->setGeometry(50, 14, 180, 28);
     m_indProgramBtn->setToolTip(QStringLiteral("Индивид. програм. пациента"));
     m_indProgramBtn->setCursor(Qt::PointingHandCursor);
     m_indProgramBtn->hide();
@@ -1772,8 +1773,8 @@ void SunriseWindow::buildSlidePanels() {
         changeDocumentFontSize(value);
     });
     connect(m_templateDeleteButton, &ImageButton::clicked, this, [this]() {
-        const QString name = m_templates->currentText();
-        if (name == QStringLiteral("Стандартный")) {
+        const QString name = m_templates->currentText().trimmed();
+        if (name == QStringLiteral("Стандартный") || name.isEmpty()) {
             return;
         }
         if (!CustomMessageBox::askConfirm(this, "Внимание! Вы собираетесь удалить данные\nЭто действие необратимо!")) {
@@ -1785,20 +1786,40 @@ void SunriseWindow::buildSlidePanels() {
             CustomMessageBox::showError(this, err);
             return;
         }
+        const int fontSize = m_fontSlider ? m_fontSlider->value() : 24;
+        // Сразу сбрасываем выбранный профиль, чтобы удалённый шаблон не поднимался при следующем входе.
+        writeProfileConfig(QStringLiteral("Стандартный"), fontSize, scope);
         refreshTemplateNames();
-        m_templates->setCurrentText(QStringLiteral("Стандартный"));
+        {
+            QSignalBlocker blocker(m_templates);
+            m_templates->setCurrentText(QStringLiteral("Стандартный"));
+        }
         if (scope.isEmpty()) {
-            writeProfileConfig(QStringLiteral("Стандартный"), m_fontSlider->value());
-            loadDefaultAnamnesisTemplate();
+            loadStandardAnamnesisContent();
+            changeDocumentFontSize(fontSize, false);
         } else if (m_exerciseHost) {
             m_exerciseHost->loadStandardTextDocument();
+            if (m_fontSlider) {
+                changeDocumentFontSize(fontSize, false);
+            }
         }
     });
-    connect(m_templateSaveAsButton, &ImageButton::clicked, this, [this]() { saveCurrentAnamnesisTemplate(); });
+    // «Сохранить» в панели настроек — только создание нового шаблона (экран «Сохранить как»).
+    connect(m_templateSaveAsButton, &ImageButton::clicked, this, [this]() {
+        if (m_templateNameEdit) {
+            m_templateNameEdit->clear();
+            m_templateNameEdit->setFocus();
+        }
+        showSettingsSaveTemplateView(true);
+    });
     connect(saveTemplateBtn, &ImageButton::clicked, this, [this]() {
         const QString name = m_templateNameEdit->text().trimmed();
         if (name.isEmpty()) {
             CustomMessageBox::showWarning(this, "Введите название шаблона.");
+            return;
+        }
+        if (name == QStringLiteral("Стандартный")) {
+            CustomMessageBox::showWarning(this, QStringLiteral("Шаблон «Стандартный» нельзя перезаписать."));
             return;
         }
         {
@@ -2098,24 +2119,8 @@ void SunriseWindow::bindSignals() {
         }
         showSettingsSaveTemplateView(false);
         refreshTemplateNames();
-        if (currentSettingsScope().isEmpty()) {
-            syncTemplateSelectorFromProfile();
-        } else {
-            // Как popprofile_Load: список шаблонов, без подмены текущего текста упражнения.
-            m_suppressTemplateLoad = true;
-            if (m_templates) {
-                const QSignalBlocker blocker(m_templates);
-                m_templates->setCurrentText(QStringLiteral("Стандартный"));
-            }
-            if (m_fontSlider) {
-                QSignalBlocker sliderBlocker(m_fontSlider);
-                m_fontSlider->setValue(24);
-            }
-            if (m_fontSizeLabel) {
-                m_fontSizeLabel->setText(QStringLiteral("24"));
-            }
-            m_suppressTemplateLoad = false;
-        }
+        // Показать в комбо выбранный ранее шаблон (для анамнеза и текстовых упражнений).
+        syncTemplateSelectorFromProfile();
         toggleSlidePanel(m_settingsPanel);
     });
     connect(m_templates, QOverload<int>::of(&QComboBox::activated), this, [this](int index) {
@@ -2123,6 +2128,7 @@ void SunriseWindow::bindSignals() {
         if (m_settingsPanel == nullptr || !m_settingsPanel->isVisible() || m_suppressTemplateLoad) {
             return;
         }
+        // Выбор в списке сразу загружает шаблон и запоминает его — без «Сохранить».
         loadAnamnesisTemplateByName(m_templates->currentText().trimmed());
     });
     connect(m_underlineButton, &ImageButton::clicked, this, [this]() {
@@ -2865,25 +2871,58 @@ QString SunriseWindow::htmlPath(const QString &name) const {
     return {};
 }
 
-QString SunriseWindow::profileConfigPath() const {
+QString SunriseWindow::profileConfigPath(const QString &scope) const {
+    const QString fileName = scope.isEmpty()
+                                 ? QStringLiteral("шаблон.txt")
+                                 : QStringLiteral("шаблон_%1.txt").arg(scope);
+    const QString app = QCoreApplication::applicationDirPath();
     const QStringList roots = {
-        QCoreApplication::applicationDirPath() + "/../assets/ex/names",
-        QCoreApplication::applicationDirPath() + "/../../assets/ex/names",
-        QCoreApplication::applicationDirPath() + "/../../../assets/ex/names",
+        app + "/assets/ex/names",
+        app + "/../assets/ex/names",
+        app + "/../../assets/ex/names",
+        app + "/../../../assets/ex/names",
         QDir::currentPath() + "/assets/ex/names",
+        QDir::currentPath() + "/../assets/ex/names",
         QDir::currentPath() + "/../old_project/serv9 2025/WindowsFormsApp1/bin/Debug/ex/names",
         QDir::currentPath() + "/../old_project/serv9 2025/WindowsFormsApp1/bin/maindata/ex/names"
     };
-    const QStringList names = {QStringLiteral("шаблон.txt"), QStringLiteral("Шаблон.txt")};
     for (const QString &root : roots) {
-        for (const QString &name : names) {
-            const QString candidate = QDir(root).filePath(name);
-            if (QFile::exists(candidate)) {
-                return candidate;
+        const QString candidate = QDir(root).filePath(fileName);
+        if (QFile::exists(candidate)) {
+            return candidate;
+        }
+        // Для анамнеза допускаем старое имя файла с заглавной буквы.
+        if (scope.isEmpty()) {
+            const QString alt = QDir(root).filePath(QStringLiteral("Шаблон.txt"));
+            if (QFile::exists(alt)) {
+                return alt;
             }
         }
     }
-    return {};
+    // Путь для создания файла рядом с дистрибутивом / сборкой.
+    return QDir(app + "/assets/ex/names").filePath(fileName);
+}
+
+QString SunriseWindow::readProfileTemplateName(const QString &scope, int *fontSize) const {
+    QString profileName = QStringLiteral("Стандартный");
+    int size = 24;
+    const QString configPath = profileConfigPath(scope);
+    if (!configPath.isEmpty()) {
+        QFile configFile(configPath);
+        if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            const QStringList parts = QString::fromUtf8(configFile.readAll()).trimmed().split(QLatin1Char(';'));
+            if (!parts.isEmpty() && !parts.first().trimmed().isEmpty()) {
+                profileName = parts.first().trimmed();
+            }
+            if (parts.size() > 1) {
+                size = parts.at(1).toInt();
+            }
+        }
+    }
+    if (fontSize) {
+        *fontSize = size > 0 ? size : 24;
+    }
+    return profileName;
 }
 
 QString SunriseWindow::defaultAnamnesisHtml() const {
@@ -3031,72 +3070,93 @@ void SunriseWindow::applyAnamnesisDocument(const QString &raw) {
 #endif
 }
 
+void SunriseWindow::loadStandardAnamnesisContent() {
+    const QString rtfPath = htmlPath("anamnez.rtf");
+    if (!rtfPath.isEmpty()) {
+        QFile rtfFile(rtfPath);
+        if (rtfFile.open(QIODevice::ReadOnly)) {
+            loadAnamnesisRtf(rtfFile.readAll());
+            return;
+        }
+    }
+    loadStandardAnamnesisHtml();
+}
+
 void SunriseWindow::loadDefaultAnamnesisTemplate() {
-    QString profileName = QStringLiteral("Стандартный");
-    const QString configPath = profileConfigPath();
-    if (!configPath.isEmpty()) {
-        QFile configFile(configPath);
-        if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            const QStringList parts = QString::fromUtf8(configFile.readAll()).trimmed().split(';');
-            if (!parts.isEmpty() && !parts.first().trimmed().isEmpty()) {
-                profileName = parts.first().trimmed();
+    int fontSize = 24;
+    QString profileName = readProfileTemplateName(QString(), &fontSize);
+
+    if (profileName != QStringLiteral("Стандартный")) {
+        const QString templateData = m_repository.loadTemplate(profileName);
+        if (!templateData.trimmed().isEmpty()) {
+            applyAnamnesisDocument(templateData);
+            if (m_fontSlider) {
+                QSignalBlocker blocker(m_fontSlider);
+                m_fontSlider->setValue(fontSize);
             }
+            if (m_fontSizeLabel) {
+                m_fontSizeLabel->setText(QString::number(fontSize));
+            }
+            changeDocumentFontSize(fontSize, false);
+            return;
         }
+        // Удалённый/отсутствующий шаблон в профиле — откат на стандартный.
+        writeProfileConfig(QStringLiteral("Стандартный"), fontSize);
+        profileName = QStringLiteral("Стандартный");
     }
 
-    if (profileName == QStringLiteral("Стандартный")) {
-        const QString rtfPath = htmlPath("anamnez.rtf");
-        if (!rtfPath.isEmpty()) {
-            QFile rtfFile(rtfPath);
-            if (rtfFile.open(QIODevice::ReadOnly)) {
-                loadAnamnesisRtf(rtfFile.readAll());
-            } else {
-                loadStandardAnamnesisHtml();
-            }
+    loadStandardAnamnesisContent();
+    if (m_fontSlider) {
+        QSignalBlocker blocker(m_fontSlider);
+        m_fontSlider->setValue(fontSize);
+    }
+    if (m_fontSizeLabel) {
+        m_fontSizeLabel->setText(QString::number(fontSize));
+    }
+    changeDocumentFontSize(fontSize, false);
+}
+
+void SunriseWindow::applyPreferredTemplateForScope(const QString &scope) {
+    if (scope.isEmpty()) {
+        loadDefaultAnamnesisTemplate();
+        return;
+    }
+    if (!m_exerciseHost) {
+        return;
+    }
+    int fontSize = 24;
+    const QString profileName = readProfileTemplateName(scope, &fontSize);
+    m_suppressTemplateLoad = true;
+    if (m_templates) {
+        const QSignalBlocker blocker(m_templates);
+        const int idx = m_templates->findText(profileName, Qt::MatchExactly);
+        if (idx >= 0) {
+            m_templates->setCurrentIndex(idx);
         } else {
-            loadStandardAnamnesisHtml();
+            m_templates->setCurrentText(QStringLiteral("Стандартный"));
         }
-        int fontSize = 24;
-        const QString configPath = profileConfigPath();
-        if (!configPath.isEmpty()) {
-            QFile configFile(configPath);
-            if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                const QStringList parts = QString::fromUtf8(configFile.readAll()).trimmed().split(';');
-                if (parts.size() > 1) {
-                    fontSize = parts.at(1).toInt();
-                }
-            }
-        }
-        if (m_fontSlider) {
-            QSignalBlocker blocker(m_fontSlider);
-            m_fontSlider->setValue(fontSize);
-        }
-        changeDocumentFontSize(fontSize);
-        return;
     }
+    if (m_fontSlider) {
+        QSignalBlocker sliderBlocker(m_fontSlider);
+        m_fontSlider->setValue(fontSize);
+    }
+    if (m_fontSizeLabel) {
+        m_fontSizeLabel->setText(QString::number(fontSize));
+    }
+    m_suppressTemplateLoad = false;
 
-    const QString templateData = m_repository.loadTemplate(profileName);
-    if (templateData.trimmed().isEmpty()) {
-        loadStandardAnamnesisHtml();
-        int fontSize = 24;
-        const QString configPath = profileConfigPath();
-        if (!configPath.isEmpty()) {
-            QFile configFile(configPath);
-            if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                const QStringList parts = QString::fromUtf8(configFile.readAll()).trimmed().split(';');
-                if (parts.size() > 1) {
-                    fontSize = parts.at(1).toInt();
-                }
-            }
+    if (profileName == QStringLiteral("Стандартный")
+        || m_repository.loadTemplate(profileName, scope).trimmed().isEmpty()) {
+        if (profileName != QStringLiteral("Стандартный")) {
+            writeProfileConfig(QStringLiteral("Стандартный"), fontSize, scope);
         }
-        if (m_fontSlider) {
-            QSignalBlocker blocker(m_fontSlider);
-            m_fontSlider->setValue(fontSize);
+        m_exerciseHost->loadStandardTextDocument();
+    } else {
+        if (QTextEdit *edit = m_exerciseHost->textSettingsEdit()) {
+            edit->setHtml(m_repository.loadTemplate(profileName, scope));
         }
-        changeDocumentFontSize(fontSize);
-        return;
     }
-    applyAnamnesisDocument(templateData);
+    changeDocumentFontSize(fontSize, false);
 }
 
 void SunriseWindow::saveUser() {
@@ -3644,7 +3704,8 @@ void SunriseWindow::updateSettingsButtonVisibility() {
     if (!m_bSettings) {
         return;
     }
-    const bool show = settingsAvailable();
+    const bool exerciseRunning = m_exerciseHost && m_exerciseHost->isRunning();
+    const bool show = settingsAvailable() && !exerciseRunning;
     m_bSettings->setVisible(show);
     if (!show && m_settingsPanel && m_settingsPanel->isVisible()) {
         m_settingsPanel->hide();
@@ -3663,32 +3724,37 @@ void SunriseWindow::loadAnamnesisTemplateByName(const QString &name) {
     if (!edit) {
         return;
     }
-    if (scope.isEmpty()) {
-        writeProfileConfig(name, m_fontSlider ? m_fontSlider->value() : 24);
-    }
+    const int fontSize = m_fontSlider ? m_fontSlider->value() : 24;
+    // Выбор в списке = загрузка и запоминание (кнопка «Сохранить» для этого не нужна).
+    writeProfileConfig(name, fontSize, scope);
+
     if (name == QStringLiteral("Стандартный")) {
         if (scope.isEmpty()) {
-            loadDefaultAnamnesisTemplate();
+            loadStandardAnamnesisContent();
+            changeDocumentFontSize(fontSize, false);
         } else if (m_exerciseHost) {
             m_exerciseHost->loadStandardTextDocument();
-            if (m_fontSlider) {
-                changeDocumentFontSize(m_fontSlider->value(), false);
-            }
+            changeDocumentFontSize(fontSize, false);
         }
         return;
     }
     const QString templateData = m_repository.loadTemplate(name, scope);
     if (templateData.trimmed().isEmpty()) {
+        writeProfileConfig(QStringLiteral("Стандартный"), fontSize, scope);
+        if (scope.isEmpty()) {
+            loadStandardAnamnesisContent();
+        } else if (m_exerciseHost) {
+            m_exerciseHost->loadStandardTextDocument();
+        }
+        changeDocumentFontSize(fontSize, false);
         return;
     }
     if (scope.isEmpty()) {
         applyAnamnesisDocument(templateData);
     } else {
         edit->setHtml(templateData);
-        if (m_fontSlider) {
-            changeDocumentFontSize(m_fontSlider->value(), false);
-        }
     }
+    changeDocumentFontSize(fontSize, false);
 }
 
 void SunriseWindow::saveCurrentAnamnesisTemplate() {
@@ -3720,9 +3786,8 @@ void SunriseWindow::saveCurrentAnamnesisTemplate() {
         CustomMessageBox::showError(this, err);
         return;
     }
-    if (scope.isEmpty()) {
-        writeProfileConfig(name, fontSize);
-    }
+    // 5.1: новый шаблон сразу становится текущим и загружается при следующих входах.
+    writeProfileConfig(name, fontSize, scope);
     refreshTemplateNames();
     {
         QSignalBlocker blocker(m_templates);
@@ -3734,6 +3799,16 @@ void SunriseWindow::saveCurrentAnamnesisTemplate() {
             m_templates->setCurrentIndex(m_templates->findText(name, Qt::MatchExactly));
         }
     }
+    // Контент уже в редакторе; повторно применяем сохранённые данные на случай нормализации.
+    const QString saved = m_repository.loadTemplate(name, scope);
+    if (!saved.trimmed().isEmpty()) {
+        if (scope.isEmpty()) {
+            applyAnamnesisDocument(saved);
+        } else {
+            edit->setHtml(saved);
+        }
+        changeDocumentFontSize(fontSize, false);
+    }
     hideSlidePanels();
 }
 
@@ -3741,28 +3816,22 @@ void SunriseWindow::syncTemplateSelectorFromProfile() {
     if (!m_templates) {
         return;
     }
-    QString profileName = QStringLiteral("Стандартный");
+    const QString scope = currentSettingsScope();
     int fontSize = 24;
-    const QString configPath = profileConfigPath();
-    if (!configPath.isEmpty()) {
-        QFile configFile(configPath);
-        if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            const QStringList parts = QString::fromUtf8(configFile.readAll()).trimmed().split(';');
-            if (!parts.isEmpty() && !parts.first().trimmed().isEmpty()) {
-                profileName = parts.first().trimmed();
-            }
-            if (parts.size() > 1) {
-                fontSize = parts.at(1).toInt();
-            }
-        }
-    }
+    QString profileName = readProfileTemplateName(scope, &fontSize);
     m_suppressTemplateLoad = true;
     const QSignalBlocker blocker(m_templates);
-    const int idx = m_templates->findText(profileName, Qt::MatchExactly);
+    int idx = m_templates->findText(profileName, Qt::MatchExactly);
+    if (idx < 0) {
+        // Имя из профиля отсутствует в списке (удалён) — сброс на стандартный.
+        profileName = QStringLiteral("Стандартный");
+        writeProfileConfig(profileName, fontSize, scope);
+        idx = m_templates->findText(profileName, Qt::MatchExactly);
+    }
     if (idx >= 0) {
         m_templates->setCurrentIndex(idx);
     } else {
-        m_templates->setEditText(profileName);
+        m_templates->setCurrentText(profileName);
     }
     if (m_fontSlider) {
         QSignalBlocker sliderBlocker(m_fontSlider);
@@ -3771,7 +3840,7 @@ void SunriseWindow::syncTemplateSelectorFromProfile() {
     if (m_fontSizeLabel) {
         m_fontSizeLabel->setText(QString::number(fontSize));
     }
-    if (m_currentScreen == ScreenMode::Anamnesis && m_anamnesisEdit) {
+    if (currentSettingsEdit()) {
         changeDocumentFontSize(fontSize, false);
     }
     m_suppressTemplateLoad = false;
@@ -4162,7 +4231,7 @@ void SunriseWindow::changeDocumentFontSize(int pointSize, bool persistProfile) {
     }
 #endif
     if (persistProfile && m_templates) {
-        writeProfileConfig(m_templates->currentText(), pointSize);
+        writeProfileConfig(m_templates->currentText(), pointSize, currentSettingsScope());
     }
 }
 
@@ -4174,60 +4243,99 @@ void SunriseWindow::prepareAnamnesisDocumentForOutput() {
     changeDocumentFontSize(fontSize, false);
 }
 
-void SunriseWindow::writeProfileConfig(const QString &profileName, int fontSize) {
-    const QString path = profileConfigPath();
+void SunriseWindow::writeProfileConfig(const QString &profileName, int fontSize, const QString &scope) {
+    const QString path = profileConfigPath(scope);
     if (path.isEmpty()) {
         return;
     }
+    QDir().mkpath(QFileInfo(path).absolutePath());
     QFile file(path);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        file.write(QString("%1;%2\n").arg(profileName).arg(fontSize).toUtf8());
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        file.write(QStringLiteral("%1;%2\n").arg(profileName).arg(fontSize).toUtf8());
+    }
+}
+
+void SunriseWindow::updateExerciseChrome() {
+    const bool exerciseOpen = m_exerciseHost != nullptr;
+    const bool exerciseRunning = exerciseOpen && m_exerciseHost->isRunning();
+    const bool workScreen = isWorkScreen(m_currentScreen);
+
+    // п.6: на странице упражнения вкладки скрыты.
+    for (ImageButton *tab : {m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp}) {
+        if (tab) {
+            tab->setVisible(workScreen && !exerciseOpen);
+        }
+    }
+
+    // п.8: при «Начать» скрываются все кнопки шапки.
+    const bool headerVisible = !exerciseRunning;
+    if (m_bExit) {
+        m_bExit->setVisible(headerVisible && m_currentScreen != ScreenMode::Enter);
+    }
+    if (m_bInfo) {
+        m_bInfo->setVisible(headerVisible);
+    }
+    if (m_bClose) {
+        m_bClose->setVisible(headerVisible);
+    }
+    if (m_bLine) {
+        m_bLine->setVisible(headerVisible);
+    }
+    if (m_bUp) {
+        m_bUp->setVisible(headerVisible);
+    }
+    if (m_bSave) {
+        m_bSave->setVisible(headerVisible && workScreen && !exerciseRunning);
+    }
+    if (m_bPrint) {
+        m_bPrint->setVisible(headerVisible && workScreen && !exerciseRunning);
+    }
+    if (m_bSettings) {
+        m_bSettings->setVisible(headerVisible && settingsAvailable());
+    }
+    if (m_bList) {
+        m_bList->setVisible(headerVisible && workScreen && !exerciseOpen);
+    }
+    if (m_indProgramBtn) {
+        m_indProgramBtn->setVisible(headerVisible && exerciseOpen);
+        if (m_indProgramBtn->isVisible()) {
+            m_indProgramBtn->raise();
+        }
+    }
+    if (m_patientTitle) {
+        m_patientTitle->setVisible(workScreen && !exerciseOpen);
+    }
+    if (exerciseRunning) {
+        hideSlidePanels();
+        if (m_printPanel) {
+            m_printPanel->hide();
+        }
+        if (m_settingsPanel) {
+            m_settingsPanel->hide();
+        }
+    }
+    if (headerVisible) {
+        raiseChromeWidgets();
     }
 }
 
 void SunriseWindow::setWorkChromeVisible(bool visible) {
-    const bool showSettings = visible && settingsAvailable();
-    const bool showSavePrint = visible && isWorkScreen(m_currentScreen);
-    const bool exerciseOpen = m_exerciseHost != nullptr;
-    const QWidgetList chromeWidgets = {
-        m_bExit, m_bInfo,
-        m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp, m_patientTitle, m_userOpenPatients
-    };
-    for (QWidget *widget : chromeWidgets) {
-        if (widget) {
-            widget->setVisible(visible);
+    if (!visible) {
+        // Полное скрытие (редко): делегируем в режим «упражнение запущено».
+        for (ImageButton *tab : {m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp}) {
+            if (tab) {
+                tab->hide();
+            }
         }
+        for (QWidget *w : QWidgetList{m_bExit, m_bInfo, m_bClose, m_bLine, m_bUp, m_bSave, m_bPrint, m_bSettings,
+                                      m_bList, m_indProgramBtn, m_patientTitle}) {
+            if (w) {
+                w->hide();
+            }
+        }
+        return;
     }
-    if (m_bList) {
-        m_bList->setVisible(visible && !exerciseOpen);
-    }
-    if (m_indProgramBtn) {
-        m_indProgramBtn->setVisible(visible && exerciseOpen);
-    }
-    if (m_bSave) {
-        m_bSave->setVisible(showSavePrint);
-    }
-    if (m_bPrint) {
-        m_bPrint->setVisible(showSavePrint);
-    }
-    if (!showSavePrint && m_printPanel) {
-        m_printPanel->hide();
-    }
-    if (m_bSettings) {
-        m_bSettings->setVisible(showSettings);
-    }
-    if (m_bClose) {
-        m_bClose->setVisible(visible);
-    }
-    if (m_bLine) {
-        m_bLine->setVisible(visible);
-    }
-    if (m_bUp) {
-        m_bUp->setVisible(visible);
-    }
-    if (visible) {
-        raiseChromeWidgets();
-    }
+    updateExerciseChrome();
 }
 
 void SunriseWindow::raiseChromeWidgets() {
@@ -4330,7 +4438,10 @@ void SunriseWindow::openExercise(const QString &menuId) {
     ctx.specialistFio = m_session ? m_session->fio : QString();
     ctx.repository = &m_repository;
     m_exerciseHost = new ExerciseHost(rt, ctx, m_root);
-    m_exerciseHost->setGeometry(5, 105, 1910, 965);
+    // п.6: без вкладок (y=64..109) поднимаем серое поле вплотную к шапке.
+    constexpr int kExerciseTop = 55;
+    constexpr int kExerciseHeight = 1015; // было 105+965 → та же нижняя граница
+    m_exerciseHost->setGeometry(5, kExerciseTop, 1910, kExerciseHeight);
     m_exerciseHidSummary = m_summaryPanel && m_summaryPanel->isVisible();
     if (m_workStack) {
         m_workStack->hide();
@@ -4344,15 +4455,13 @@ void SunriseWindow::openExercise(const QString &menuId) {
     connect(m_exerciseHost, &ExerciseHost::closeRequested, this, [this]() { closeExercise(true); });
     connect(m_exerciseHost, &ExerciseHost::textSettingsAvailabilityChanged, this, [this]() {
         updateSettingsButtonVisibility();
+        updateExerciseChrome();
     });
+    connect(m_exerciseHost, &ExerciseHost::runningChanged, this, [this](bool) { updateExerciseChrome(); });
     updateSettingsButtonVisibility();
-    // Form1: bplist скрыт, bind (ind.png) на его месте — вверху слева.
-    if (m_bList) {
-        m_bList->hide();
-    }
-    if (m_indProgramBtn) {
-        m_indProgramBtn->show();
-        m_indProgramBtn->raise();
+    updateExerciseChrome();
+    if (m_exerciseHost->textSettingsAvailable()) {
+        applyPreferredTemplateForScope(m_exerciseHost->textSettingsScope());
     }
 }
 
@@ -4382,10 +4491,24 @@ void SunriseWindow::closeExercise(bool restoreWork) {
         if (m_summaryPanel && m_exerciseHidSummary) {
             m_summaryPanel->show();
         }
+        // Вернуть вкладки и кнопки шапки рабочей области.
+        updateExerciseChrome();
         if (m_bList && isWorkScreen(m_currentScreen)) {
             m_bList->show();
             m_bList->raise();
         }
+        if (m_patientTitle && isWorkScreen(m_currentScreen)) {
+            m_patientTitle->show();
+            m_patientTitle->raise();
+        }
+        for (ImageButton *tab : {m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp}) {
+            if (tab && isWorkScreen(m_currentScreen)) {
+                tab->show();
+                tab->raise();
+            }
+        }
+    } else {
+        updateExerciseChrome();
     }
     m_exerciseHidSummary = false;
 }

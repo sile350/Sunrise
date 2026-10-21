@@ -100,8 +100,12 @@ private:
     void prepareAnamnesisDocumentForOutput();
     void applyAnamnesisDocumentFontDefaults();
     void applyCompactAnamnesisLineSpacing();
-    void writeProfileConfig(const QString &profileName, int fontSize);
-    QString profileConfigPath() const;
+    void writeProfileConfig(const QString &profileName, int fontSize, const QString &scope = QString());
+    QString profileConfigPath(const QString &scope = QString()) const;
+    QString readProfileTemplateName(const QString &scope, int *fontSize = nullptr) const;
+    void loadStandardAnamnesisContent();
+    void applyPreferredTemplateForScope(const QString &scope);
+    void updateExerciseChrome();
     void bindClearableField(QLineEdit *edit, ImageButton *clearBtn);
     QString defaultAnamnesisHtml() const;
     QString decodeDocument(const QString &raw) const;

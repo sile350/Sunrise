@@ -44,7 +44,8 @@ namespace {
 
 constexpr int kLeftWidth = 850;
 constexpr int kCoverX = 860;
-constexpr int kTopBar = 40;
+// Заголовок упражнения убран (название уже в ссылке описания) — контент от верхнего края.
+constexpr int kTopBar = 0;
 
 QString readTextFile(const QString &path) {
     QFile f(path);
@@ -72,12 +73,7 @@ ExerciseHost::ExerciseHost(const ExerciseRuntime &runtime, const ExerciseContext
     setPalette(pal);
     setObjectName(QStringLiteral("exerciseHost"));
 
-    m_title = new QLabel(m_rt.title, this);
-    QFont tf = m_title->font();
-    tf.setPointSize(12);
-    tf.setBold(true);
-    m_title->setFont(tf);
-    m_title->setGeometry(10, 8, kLeftWidth + 900, 26);
+    m_title = nullptr;
 
     m_patientScreenBtn = new QPushButton(QStringLiteral("Экран пациента"), this);
     m_patientScreenBtn->setToolTip(QStringLiteral("Вернуться к выполнению упражнения на экране пациента"));
@@ -203,7 +199,11 @@ void ExerciseHost::buildLeftColumn() {
     lay->addLayout(itogRow);
     connect(m_itogBtn, &ImageButton::clicked, this, &ExerciseHost::onItog);
 
-    lay->addStretch(1);
+    // Запас прокрутки под панелью задач Windows, чтобы домотать до низа протокола / «Подвести итог».
+    auto *bottomPad = new QWidget(inner);
+    bottomPad->setFixedHeight(240);
+    bottomPad->setStyleSheet(QStringLiteral("background: transparent;"));
+    lay->addWidget(bottomPad);
     m_leftScroll->setWidget(inner);
 
     connect(m_or, &QTextBrowser::anchorClicked, this, [this](const QUrl &url) {
@@ -401,7 +401,7 @@ void ExerciseHost::attachEngineToWindows() {
 // ---------------- раскладка ----------------
 
 void ExerciseHost::layoutCover() {
-    const int h = 965 - kTopBar;
+    const int h = qMax(200, (height() > 100 ? height() : 965) - kTopBar);
     m_cover->setGeometry(kCoverX, kTopBar, 1040, h);
     int top = 150;
     int bottomPad = 10;
@@ -922,6 +922,11 @@ void ExerciseHost::onParamChanged(QComboBox *source) {
 // ---------------- кнопки ----------------
 
 void ExerciseHost::setRunning(bool running) {
+    const bool changed = (m_running != running);
+    if (running && changed && m_form) {
+        // При «Начать» сбрасываем галочки баллов / помощи / характера деятельности.
+        m_form->clear();
+    }
     m_running = running;
     if (m_cover->beginu) {
         m_cover->beginu->setVisible(!running);
@@ -935,6 +940,9 @@ void ExerciseHost::setRunning(bool running) {
         m_begun = true;
     }
     updateVisibility();
+    if (changed) {
+        emit runningChanged(running);
+    }
 }
 
 void ExerciseHost::openLocalFile(const QString &file) {

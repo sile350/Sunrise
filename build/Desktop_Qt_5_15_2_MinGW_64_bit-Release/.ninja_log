@@ -120,3 +120,15 @@
 330	3318	8142396483957098	CMakeFiles/sunrise.dir/src/exercisehost.cpp.obj	6be6e813d233d1c2
 329	7052	8142396483947092	CMakeFiles/sunrise.dir/src/sunrisewindow.cpp.obj	3c51073880c5176f
 7052	8376	8142396551171956	sunrise.exe	d030bdc9b410b336
+73	885	8142454561733475	sunrise_autogen/timestamp	8f2c77479716071e
+73	885	8142454561733475	sunrise_autogen/mocs_compilation.cpp	8f2c77479716071e
+73	885	8142454561733475	D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/timestamp	8f2c77479716071e
+73	885	8142454561733475	D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/mocs_compilation.cpp	8f2c77479716071e
+899	5370	8142454562526294	CMakeFiles/sunrise.dir/src/custommessagebox.cpp.obj	89e6e9f2eacda42b
+896	5579	8142454562496981	CMakeFiles/sunrise.dir/src/protocoleditor.cpp.obj	d65c9559ea0ea65a
+889	5586	8142454562419008	CMakeFiles/sunrise.dir/main.cpp.obj	8ca95f5e47368ce2
+898	5838	8142454562516511	CMakeFiles/sunrise.dir/src/scoringform.cpp.obj	af25b994589a1a8b
+886	7132	8142454562403807	CMakeFiles/sunrise.dir/sunrise_autogen/mocs_compilation.cpp.obj	1537703c01c690ad
+894	8335	8142454562477424	CMakeFiles/sunrise.dir/src/exercisehost.cpp.obj	6be6e813d233d1c2
+890	15326	8142454562438381	CMakeFiles/sunrise.dir/src/sunrisewindow.cpp.obj	3c51073880c5176f
+15327	19619	8142454706807209	sunrise.exe	d030bdc9b410b336
