@@ -46,6 +46,8 @@ public:
     bool savePatientProgram(const QString &patientId, const QString &program, QString *errorText = nullptr);
     bool verifyPatientAccess(const QString &patientId, const QString &licenseKey, QString *errorText);
     bool savePatientAnamnesis(QString *patientId, const QString &licenseKey, const QString &plainText, const QString &html, QString *detectedFio, QString *detectedBirthDate, QString *errorText);
+    // Обновить только HTML анамнеза у существующей карты (без проверки ФИО) — после смены/удаления шаблона.
+    bool replacePatientAnamnesisHtml(const QString &patientId, const QString &html, QString *errorText = nullptr);
     void registerNewPatientAccepted(const QString &patientId, const QString &licenseKey);
     void extractPatientFields(const QString &plainText, QString *fio, QString *birthDate, QString *diag = nullptr, QString *visitDate = nullptr) const;
     bool deletePatient(const QString &patientId, QString *errorText);

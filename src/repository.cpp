@@ -283,6 +283,27 @@ bool Repository::savePatientAnamnesis(QString *patientId, const QString &license
     }
     return true;
 }
+
+bool Repository::replacePatientAnamnesisHtml(const QString &patientId, const QString &html, QString *errorText) {
+    if (patientId.trimmed().isEmpty()) {
+        if (errorText) {
+            *errorText = QStringLiteral("Не выбран пациент.");
+        }
+        return false;
+    }
+    const QString sql = QStringLiteral("UPDATE patients SET an='%1',dt='%2' WHERE id=%3")
+                            .arg(LocalDatabase::escape(html),
+                                 QString::number(QDateTime::currentSecsSinceEpoch()),
+                                 patientId.trimmed());
+    if (!m_local.exec(sql)) {
+        if (errorText) {
+            *errorText = m_local.lastError();
+        }
+        return false;
+    }
+    return true;
+}
+
 void Repository::registerNewPatientAccepted(const QString &patientId, const QString &licenseKey) {
     if (patientId.trimmed().isEmpty()) {
         return;

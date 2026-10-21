@@ -1543,7 +1543,8 @@ void SunriseWindow::buildUi() {
     m_anamnesisLabel->move(442, 18);
     m_anamnesisLabel->adjustSize();
     m_patientTitle = new GrayTitleLabel(m_root);
-    m_patientTitle->setGeometry(287, 34, 237, 34);
+    // На одном уровне с кнопками шапки / верхом поднятого блока упражнений (y=12).
+    m_patientTitle->setGeometry(287, 12, 237, 34);
     m_anamnesisEdit = new QTextEdit(m_panelWork);
     m_anamnesisEdit->setGeometry(29, 55, 900, 950);
 
@@ -1795,10 +1796,9 @@ void SunriseWindow::buildSlidePanels() {
             m_templates->setCurrentText(QStringLiteral("Стандартный"));
         }
         if (scope.isEmpty()) {
-            loadStandardAnamnesisContent();
+            replaceAnamnesisWithStandardTemplate();
+            m_forceStandardAnamnesis = true;
             changeDocumentFontSize(fontSize, false);
-            // Сразу записать в карту, иначе при повторном входе останется текст удалённого шаблона.
-            tryAutoSaveAnamnesis(true);
         } else if (m_exerciseHost) {
             m_exerciseHost->loadStandardTextDocument();
             if (m_fontSlider) {
@@ -2150,14 +2150,16 @@ void SunriseWindow::bindSignals() {
     connect(m_anamnesisEdit, &QTextEdit::cursorPositionChanged, this, [this]() { updateFormatButtonIcons(); });
     connect(m_anamnesisEdit, &QTextEdit::selectionChanged, this, [this]() { updateFormatButtonIcons(); });
     m_anamnesisEdit->installEventFilter(this);
-    auto *anamnesisAutoSaveTimer = new QTimer(this);
-    anamnesisAutoSaveTimer->setSingleShot(true);
-    anamnesisAutoSaveTimer->setInterval(1200);
-    connect(m_anamnesisEdit, &QTextEdit::textChanged, this, [this, anamnesisAutoSaveTimer]() {
+    m_anamnesisAutoSaveTimer = new QTimer(this);
+    m_anamnesisAutoSaveTimer->setSingleShot(true);
+    m_anamnesisAutoSaveTimer->setInterval(1200);
+    connect(m_anamnesisEdit, &QTextEdit::textChanged, this, [this]() {
         updatePatientTitleFromDocument();
-        anamnesisAutoSaveTimer->start();
+        if (m_anamnesisAutoSaveTimer) {
+            m_anamnesisAutoSaveTimer->start();
+        }
     });
-    connect(anamnesisAutoSaveTimer, &QTimer::timeout, this, [this]() { tryAutoSaveAnamnesis(); });
+    connect(m_anamnesisAutoSaveTimer, &QTimer::timeout, this, [this]() { tryAutoSaveAnamnesis(); });
 }
 
 void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
@@ -2319,8 +2321,13 @@ void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
             const QStringList known = m_repository.loadTemplateNames(QString());
             const bool orphanProfile = profileName != QStringLiteral("Стандартный")
                 && !known.contains(profileName);
-            if (m_currentPatientId.isEmpty()
-                && (orphanProfile || m_anamnesisEdit->toPlainText().trimmed().isEmpty())) {
+            if (m_forceStandardAnamnesis || orphanProfile) {
+                // 5.3: после удаления шаблона (или «осиротевшего» профиля) не оставлять старый текст.
+                replaceAnamnesisWithStandardTemplate();
+                m_forceStandardAnamnesis = false;
+                changeDocumentFontSize(fontSize, false);
+            } else if (m_currentPatientId.isEmpty()
+                       && m_anamnesisEdit->toPlainText().trimmed().isEmpty()) {
                 loadDefaultAnamnesisTemplate();
             } else {
                 if (m_fontSlider) {
@@ -3082,6 +3089,56 @@ void SunriseWindow::loadStandardAnamnesisContent() {
     loadStandardAnamnesisHtml();
 }
 
+void SunriseWindow::replaceAnamnesisWithStandardTemplate() {
+    if (!m_anamnesisEdit) {
+        return;
+    }
+    if (m_anamnesisAutoSaveTimer) {
+        m_anamnesisAutoSaveTimer->stop();
+    }
+
+    QString fio;
+    QString dr;
+    QString diag;
+    QString visit;
+    m_repository.extractPatientFields(m_anamnesisEdit->toPlainText(), &fio, &dr, &diag, &visit);
+    if (fio.trimmed().isEmpty() && m_patientTitle) {
+        const QString title = m_patientTitle->text().trimmed();
+        if (!title.isEmpty() && title != QStringLiteral("Новая карта")) {
+            fio = title;
+        }
+    }
+
+    const int fontSize = m_fontSlider ? m_fontSlider->value() : 24;
+    writeProfileConfig(QStringLiteral("Стандартный"), fontSize);
+    loadStandardAnamnesisContent();
+
+    // Вернуть идентификационные поля, чтобы карта пациента не «теряла» ФИО и автосохранение работало.
+    auto setField = [this](const QString &label, const QString &value) {
+        if (!m_anamnesisEdit || value.trimmed().isEmpty()) {
+            return;
+        }
+        QTextCursor found = m_anamnesisEdit->document()->find(label);
+        if (found.isNull()) {
+            return;
+        }
+        found.movePosition(QTextCursor::StartOfBlock);
+        found.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        found.insertText(label + QLatin1Char(' ') + value.trimmed());
+    };
+    setField(QStringLiteral("Ф.И.О. пациента:"), fio);
+    setField(QStringLiteral("Дата рождения:"), dr);
+    setField(QStringLiteral("Диагноз:"), diag);
+    setField(QStringLiteral("Дата обращения:"), visit);
+
+    if (!m_currentPatientId.isEmpty()) {
+        QString err;
+        m_repository.replacePatientAnamnesisHtml(m_currentPatientId, m_anamnesisEdit->toHtml(), &err);
+    } else {
+        tryAutoSaveAnamnesis(true);
+    }
+}
+
 void SunriseWindow::loadDefaultAnamnesisTemplate() {
     int fontSize = 24;
     QString profileName = readProfileTemplateName(QString(), &fontSize);
@@ -3736,7 +3793,7 @@ void SunriseWindow::loadAnamnesisTemplateByName(const QString &name) {
 
     if (name == QStringLiteral("Стандартный")) {
         if (scope.isEmpty()) {
-            loadStandardAnamnesisContent();
+            replaceAnamnesisWithStandardTemplate();
             changeDocumentFontSize(fontSize, false);
         } else if (m_exerciseHost) {
             m_exerciseHost->loadStandardTextDocument();

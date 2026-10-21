@@ -104,6 +104,7 @@ private:
     QString profileConfigPath(const QString &scope = QString()) const;
     QString readProfileTemplateName(const QString &scope, int *fontSize = nullptr) const;
     void loadStandardAnamnesisContent();
+    void replaceAnamnesisWithStandardTemplate();
     void applyPreferredTemplateForScope(const QString &scope);
     void updateExerciseChrome();
     void bindClearableField(QLineEdit *edit, ImageButton *clearBtn);
@@ -261,6 +262,9 @@ private:
     QString m_editUserId;
     bool m_userSaveInProgress = false;
     bool m_anamnesisSaveInProgress = false;
+    // После удаления шаблона — снова подставить «Стандартный» при возврате на вкладку Анамнез.
+    bool m_forceStandardAnamnesis = false;
+    QTimer *m_anamnesisAutoSaveTimer = nullptr;
     QString m_lastManagedUserId;
     QString m_lastManagedUserLogin;
     QString m_lastManagedUserPassword;
