@@ -934,8 +934,11 @@ void ExerciseHost::setRunning(bool running) {
     if (m_cover->stopu) {
         m_cover->stopu->setVisible(running);
     }
-    showLeft(!running);
-    m_formBtn->setVisible(!running);
+    // 12.1/13.2: левая часть с описанием остаётся; скрывается только «Сформировать протокол».
+    showLeft(true);
+    if (m_formBtn) {
+        m_formBtn->setVisible(!running);
+    }
     if (running) {
         m_begun = true;
     }
@@ -963,10 +966,7 @@ void ExerciseHost::onBegin() {
         setRunning(true);
         return;
     }
-    if (m_rt.coverKind == ExCoverKind::C112 && m_mp->dSay.isEmpty()) {
-        CustomMessageBox::showWarning(this, QStringLiteral("В начале выберите картинку для показа или подписи."));
-        return;
-    }
+    // 13.1: сюжетные картинки — можно начать до выделения картинки.
     // Счётчики обнуляются при открытии упражнения; при «Начать» — только в _223/_224.beginu_Click_1
     if (m_rt.coverKind == ExCoverKind::C223 || m_rt.coverKind == ExCoverKind::C224) {
         m_ecounter = 0;

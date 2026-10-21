@@ -1283,8 +1283,8 @@ void SunriseWindow::buildUi() {
     m_bList->setGeometry(50, 12, 166, 34);
     // Как Form1.bind: на месте списка пациентов, картинка ind.png «Индивид. програм. пациента».
     m_indProgramBtn = new ImageButton(m_root);
-    // ind.png 252×39 → уменьшено в 1.4 раза (~180×28).
-    m_indProgramBtn->setGeometry(50, 14, 180, 28);
+    // Высота как у «Вернуться к пациентам» (34); ширина — пропорционально исходному 252×39.
+    m_indProgramBtn->setGeometry(50, 12, 220, 34);
     m_indProgramBtn->setToolTip(QStringLiteral("Индивид. програм. пациента"));
     m_indProgramBtn->setCursor(Qt::PointingHandCursor);
     m_indProgramBtn->hide();
@@ -1797,6 +1797,8 @@ void SunriseWindow::buildSlidePanels() {
         if (scope.isEmpty()) {
             loadStandardAnamnesisContent();
             changeDocumentFontSize(fontSize, false);
+            // Сразу записать в карту, иначе при повторном входе останется текст удалённого шаблона.
+            tryAutoSaveAnamnesis(true);
         } else if (m_exerciseHost) {
             m_exerciseHost->loadStandardTextDocument();
             if (m_fontSlider) {
@@ -2312,20 +2314,15 @@ void SunriseWindow::setScreen(ScreenMode mode, bool pushHistory) {
                 return;
             }
             refreshTemplateNames();
-            if (m_currentPatientId.isEmpty() && m_anamnesisEdit->toPlainText().trimmed().isEmpty()) {
+            int fontSize = 24;
+            const QString profileName = readProfileTemplateName(QString(), &fontSize);
+            const QStringList known = m_repository.loadTemplateNames(QString());
+            const bool orphanProfile = profileName != QStringLiteral("Стандартный")
+                && !known.contains(profileName);
+            if (m_currentPatientId.isEmpty()
+                && (orphanProfile || m_anamnesisEdit->toPlainText().trimmed().isEmpty())) {
                 loadDefaultAnamnesisTemplate();
             } else {
-                int fontSize = 24;
-                const QString configPath = profileConfigPath();
-                if (!configPath.isEmpty()) {
-                    QFile configFile(configPath);
-                    if (configFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
-                        const QStringList parts = QString::fromUtf8(configFile.readAll()).trimmed().split(';');
-                        if (parts.size() > 1) {
-                            fontSize = parts.at(1).toInt();
-                        }
-                    }
-                }
                 if (m_fontSlider) {
                     QSignalBlocker blocker(m_fontSlider);
                     m_fontSlider->setValue(fontSize);
@@ -2875,32 +2872,35 @@ QString SunriseWindow::profileConfigPath(const QString &scope) const {
     const QString fileName = scope.isEmpty()
                                  ? QStringLiteral("шаблон.txt")
                                  : QStringLiteral("шаблон_%1.txt").arg(scope);
-    const QString app = QCoreApplication::applicationDirPath();
-    const QStringList roots = {
-        app + "/assets/ex/names",
-        app + "/../assets/ex/names",
-        app + "/../../assets/ex/names",
-        app + "/../../../assets/ex/names",
-        QDir::currentPath() + "/assets/ex/names",
-        QDir::currentPath() + "/../assets/ex/names",
-        QDir::currentPath() + "/../old_project/serv9 2025/WindowsFormsApp1/bin/Debug/ex/names",
-        QDir::currentPath() + "/../old_project/serv9 2025/WindowsFormsApp1/bin/maindata/ex/names"
+    // Один канонический путь рядом с exe — иначе чтение/запись расходятся по копиям assets.
+    const QString primaryDir = QCoreApplication::applicationDirPath() + QStringLiteral("/assets/ex/names");
+    const QString primary = QDir(primaryDir).filePath(fileName);
+    if (QFile::exists(primary)) {
+        return primary;
+    }
+    // Миграция: если профиль лежит только в исходниках — один раз подхватить его.
+    const QStringList legacyRoots = {
+        QCoreApplication::applicationDirPath() + "/../assets/ex/names",
+        QCoreApplication::applicationDirPath() + "/../../assets/ex/names",
+        QDir::currentPath() + "/assets/ex/names"
     };
-    for (const QString &root : roots) {
+    for (const QString &root : legacyRoots) {
         const QString candidate = QDir(root).filePath(fileName);
         if (QFile::exists(candidate)) {
-            return candidate;
+            QDir().mkpath(primaryDir);
+            QFile::copy(candidate, primary);
+            return primary;
         }
-        // Для анамнеза допускаем старое имя файла с заглавной буквы.
         if (scope.isEmpty()) {
             const QString alt = QDir(root).filePath(QStringLiteral("Шаблон.txt"));
             if (QFile::exists(alt)) {
-                return alt;
+                QDir().mkpath(primaryDir);
+                QFile::copy(alt, primary);
+                return primary;
             }
         }
     }
-    // Путь для создания файла рядом с дистрибутивом / сборкой.
-    return QDir(app + "/assets/ex/names").filePath(fileName);
+    return primary;
 }
 
 QString SunriseWindow::readProfileTemplateName(const QString &scope, int *fontSize) const {
@@ -3085,10 +3085,17 @@ void SunriseWindow::loadStandardAnamnesisContent() {
 void SunriseWindow::loadDefaultAnamnesisTemplate() {
     int fontSize = 24;
     QString profileName = readProfileTemplateName(QString(), &fontSize);
+    const QStringList known = m_repository.loadTemplateNames(QString());
+
+    // 5.3: имя из профиля, которого уже нет в списке — не подставлять старый текст.
+    if (profileName != QStringLiteral("Стандартный") && !known.contains(profileName)) {
+        writeProfileConfig(QStringLiteral("Стандартный"), fontSize);
+        profileName = QStringLiteral("Стандартный");
+    }
 
     if (profileName != QStringLiteral("Стандартный")) {
         const QString templateData = m_repository.loadTemplate(profileName);
-        if (!templateData.trimmed().isEmpty()) {
+        if (!templateData.trimmed().isEmpty() && known.contains(profileName)) {
             applyAnamnesisDocument(templateData);
             if (m_fontSlider) {
                 QSignalBlocker blocker(m_fontSlider);
@@ -3100,9 +3107,7 @@ void SunriseWindow::loadDefaultAnamnesisTemplate() {
             changeDocumentFontSize(fontSize, false);
             return;
         }
-        // Удалённый/отсутствующий шаблон в профиле — откат на стандартный.
         writeProfileConfig(QStringLiteral("Стандартный"), fontSize);
-        profileName = QStringLiteral("Стандартный");
     }
 
     loadStandardAnamnesisContent();
@@ -3145,16 +3150,17 @@ void SunriseWindow::applyPreferredTemplateForScope(const QString &scope) {
     }
     m_suppressTemplateLoad = false;
 
-    if (profileName == QStringLiteral("Стандартный")
-        || m_repository.loadTemplate(profileName, scope).trimmed().isEmpty()) {
+    const QStringList known = m_repository.loadTemplateNames(scope);
+    const QString data = (profileName == QStringLiteral("Стандартный") || !known.contains(profileName))
+                             ? QString()
+                             : m_repository.loadTemplate(profileName, scope);
+    if (data.trimmed().isEmpty()) {
         if (profileName != QStringLiteral("Стандартный")) {
             writeProfileConfig(QStringLiteral("Стандартный"), fontSize, scope);
         }
         m_exerciseHost->loadStandardTextDocument();
-    } else {
-        if (QTextEdit *edit = m_exerciseHost->textSettingsEdit()) {
-            edit->setHtml(m_repository.loadTemplate(profileName, scope));
-        }
+    } else if (QTextEdit *edit = m_exerciseHost->textSettingsEdit()) {
+        edit->setHtml(data);
     }
     changeDocumentFontSize(fontSize, false);
 }
@@ -4259,6 +4265,7 @@ void SunriseWindow::updateExerciseChrome() {
     const bool exerciseOpen = m_exerciseHost != nullptr;
     const bool exerciseRunning = exerciseOpen && m_exerciseHost->isRunning();
     const bool workScreen = isWorkScreen(m_currentScreen);
+    const bool enter = m_currentScreen == ScreenMode::Enter;
 
     // п.6: на странице упражнения вкладки скрыты.
     for (ImageButton *tab : {m_pAna, m_pRisk, m_pCorr, m_pUpr, m_pDih, m_pMp}) {
@@ -4267,56 +4274,104 @@ void SunriseWindow::updateExerciseChrome() {
         }
     }
 
-    // п.8: при «Начать» скрываются все кнопки шапки.
-    const bool headerVisible = !exerciseRunning;
-    if (m_bExit) {
-        m_bExit->setVisible(headerVisible && m_currentScreen != ScreenMode::Enter);
-    }
-    if (m_bInfo) {
-        m_bInfo->setVisible(headerVisible);
-    }
+    // Кнопки управления окном — всегда (кроме экрана входа).
     if (m_bClose) {
-        m_bClose->setVisible(headerVisible);
+        m_bClose->setVisible(!enter);
     }
     if (m_bLine) {
-        m_bLine->setVisible(headerVisible);
+        m_bLine->setVisible(!enter);
     }
     if (m_bUp) {
-        m_bUp->setVisible(headerVisible);
+        m_bUp->setVisible(!enter);
     }
-    if (m_bSave) {
-        m_bSave->setVisible(headerVisible && workScreen && !exerciseRunning);
-    }
-    if (m_bPrint) {
-        m_bPrint->setVisible(headerVisible && workScreen && !exerciseRunning);
-    }
-    if (m_bSettings) {
-        m_bSettings->setVisible(headerVisible && settingsAvailable());
-    }
-    if (m_bList) {
-        m_bList->setVisible(headerVisible && workScreen && !exerciseOpen);
-    }
-    if (m_indProgramBtn) {
-        m_indProgramBtn->setVisible(headerVisible && exerciseOpen);
-        if (m_indProgramBtn->isVisible()) {
+
+    if (exerciseOpen) {
+        // На странице упражнения (до старта): инд. программа, ФИО, i, настройки (если есть), окно.
+        // При «Начать» (12.1/13.2): скрыть всё кроме кнопок управления окном.
+        const bool idle = !exerciseRunning;
+        if (m_indProgramBtn) {
+            m_indProgramBtn->setVisible(idle);
+        }
+        if (m_patientTitle) {
+            m_patientTitle->setVisible(idle);
+        }
+        if (m_bInfo) {
+            m_bInfo->setVisible(idle);
+        }
+        if (m_bSettings) {
+            // 13.3: у упражнений без текстовых настроек (напр. сюжетные картинки) кнопки нет.
+            m_bSettings->setVisible(idle && settingsAvailable());
+        }
+        if (m_bExit) {
+            m_bExit->hide();
+        }
+        if (m_bSave) {
+            m_bSave->hide();
+        }
+        if (m_bPrint) {
+            m_bPrint->hide();
+        }
+        if (m_bList) {
+            m_bList->hide();
+        }
+        if (exerciseRunning) {
+            hideSlidePanels();
+            if (m_printPanel) {
+                m_printPanel->hide();
+            }
+            if (m_settingsPanel) {
+                m_settingsPanel->hide();
+            }
+        }
+        if (m_indProgramBtn && m_indProgramBtn->isVisible()) {
             m_indProgramBtn->raise();
         }
+        if (m_patientTitle && m_patientTitle->isVisible()) {
+            m_patientTitle->raise();
+        }
+        if (m_bInfo && m_bInfo->isVisible()) {
+            m_bInfo->raise();
+        }
+        if (m_bSettings && m_bSettings->isVisible()) {
+            m_bSettings->raise();
+        }
+        if (m_bClose) {
+            m_bClose->raise();
+        }
+        if (m_bLine) {
+            m_bLine->raise();
+        }
+        if (m_bUp) {
+            m_bUp->raise();
+        }
+        return;
+    }
+
+    if (m_bExit) {
+        m_bExit->setVisible(!enter);
+    }
+    if (m_bInfo) {
+        m_bInfo->setVisible(true);
+    }
+    if (m_bSave) {
+        m_bSave->setVisible(workScreen);
+    }
+    if (m_bPrint) {
+        m_bPrint->setVisible(workScreen);
+    }
+    if (m_bSettings) {
+        m_bSettings->setVisible(settingsAvailable());
+    }
+    if (m_bList) {
+        m_bList->setVisible(workScreen);
+    }
+    if (m_indProgramBtn) {
+        m_indProgramBtn->hide();
     }
     if (m_patientTitle) {
-        m_patientTitle->setVisible(workScreen && !exerciseOpen);
+        m_patientTitle->setVisible(workScreen);
     }
-    if (exerciseRunning) {
-        hideSlidePanels();
-        if (m_printPanel) {
-            m_printPanel->hide();
-        }
-        if (m_settingsPanel) {
-            m_settingsPanel->hide();
-        }
-    }
-    if (headerVisible) {
-        raiseChromeWidgets();
-    }
+    raiseChromeWidgets();
 }
 
 void SunriseWindow::setWorkChromeVisible(bool visible) {
@@ -4438,9 +4493,9 @@ void SunriseWindow::openExercise(const QString &menuId) {
     ctx.specialistFio = m_session ? m_session->fio : QString();
     ctx.repository = &m_repository;
     m_exerciseHost = new ExerciseHost(rt, ctx, m_root);
-    // п.6: без вкладок (y=64..109) поднимаем серое поле вплотную к шапке.
-    constexpr int kExerciseTop = 55;
-    constexpr int kExerciseHeight = 1015; // было 105+965 → та же нижняя граница
+    // п.6: без вкладок поднимаем серое поле к шапке; −8 px по уточнению.
+    constexpr int kExerciseTop = 63;
+    constexpr int kExerciseHeight = 1007; // нижняя граница как у 105+965
     m_exerciseHost->setGeometry(5, kExerciseTop, 1910, kExerciseHeight);
     m_exerciseHidSummary = m_summaryPanel && m_summaryPanel->isVisible();
     if (m_workStack) {

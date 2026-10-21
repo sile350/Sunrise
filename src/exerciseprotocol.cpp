@@ -432,7 +432,8 @@ void tightenTables(QTextDocument *document) {
     if (!document) {
         return;
     }
-    constexpr qreal kEntryGap = 14;
+    // 12.2 / 13.4: без вертикального зазора между протоколами на странице «Протоколы».
+    constexpr qreal kEntryGap = 0;
     const auto isSummary = [](QTextTable *table) {
         if (table->rows() == 0) {
             return false;
