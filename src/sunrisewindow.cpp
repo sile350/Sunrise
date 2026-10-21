@@ -1543,7 +1543,7 @@ void SunriseWindow::buildUi() {
     m_anamnesisLabel->move(442, 18);
     m_anamnesisLabel->adjustSize();
     m_patientTitle = new GrayTitleLabel(m_root);
-    m_patientTitle->setGeometry(287, 24, 237, 34);
+    m_patientTitle->setGeometry(287, 29, 237, 34);
     m_anamnesisEdit = new QTextEdit(m_panelWork);
     m_anamnesisEdit->setGeometry(29, 55, 900, 950);
 
