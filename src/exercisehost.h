@@ -143,8 +143,14 @@ private:
     bool m_hintShown = false;
     bool m_examplesOn = false;
     bool m_explainOn = false;
+    bool m_questionShown = false; // 1.1.4 ур.2 / 1.2.3 зад.1: контент на экране пациента
     bool m_doctorPanel = false; // второго монитора нет: врач временно скрыл окно пациента
     QPushButton *m_patientScreenBtn = nullptr;
+
+    void setQuestionShown(bool shown);
+    void pushQuestionToPatient();
+    void pushFioDataToPatient();
+    void syncShowQuestionButton();
 };
 
 #endif

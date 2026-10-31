@@ -394,15 +394,30 @@ void ExerciseHost::buildEngines() {
 }
 
 void ExerciseHost::attachEngineToWindows() {
+    const bool about226 = m_rt.coverKind == ExCoverKind::C226 && m_cover && m_cover->combo1
+        && m_cover->combo1->currentText() == QLatin1String("3");
     if (m_cover->mirror) {
-        m_cover->mirror->setEngine(m_active);
+        // Задание 3: на зеркале специалиста не должно оставаться сцены задания 2.
+        m_cover->mirror->setEngine(about226 ? m_blank : m_active);
+        if (about226) {
+            m_cover->mirror->hide();
+        }
     }
     if (m_patient) {
-        const bool show = !(m_rt.coverKind == ExCoverKind::C123 && m_cover->showCheck &&
-                            !static_cast<QCheckBox *>(m_cover->showCheck)->isChecked());
+        bool show = true;
+        if (m_rt.coverKind == ExCoverKind::C123 && m_cover) {
+            const QString mode = m_cover->combo2 ? m_cover->combo2->currentText() : QStringLiteral("1");
+            if (mode == QLatin1String("1")) {
+                show = m_questionShown;
+            } else if (m_cover->showCheck) {
+                show = static_cast<QCheckBox *>(m_cover->showCheck)->isChecked();
+            }
+        }
+        if (about226) {
+            show = false; // у пациента только about.rtf
+        }
         m_patient->setEngine(show ? m_active : m_blank);
-        const bool about = m_rt.coverKind == ExCoverKind::C226 && m_cover->combo1->currentText() == QLatin1String("3");
-        m_patient->setRtf(about ? ExAssets::exnPath(QStringLiteral("2.2.6/about.rtf")) : QString());
+        m_patient->setRtf(about226 ? ExAssets::exnPath(QStringLiteral("2.2.6/about.rtf")) : QString());
     }
 }
 
@@ -542,23 +557,28 @@ void ExerciseHost::wireCover() {
     }
     if (c->showQuestion) {
         connect(c->showQuestion, &ImageButton::clicked, this, [this]() {
-            // 8.2: показать введённый вопрос на экране пациента.
-            QString q = m_cover->question->text();
-            if (q == QStringLiteral("Написать вопрос")) {
-                q.clear();
+            // 1.1.4 ур.2 / 1.2.3 зад.1: Показать ↔ Скрыть на экране пациента.
+            setQuestionShown(!m_questionShown);
+        });
+    }
+    if (c->question) {
+        connect(c->question, &QLineEdit::textChanged, this, [this](const QString &) {
+            if (m_questionShown && m_rt.coverKind == ExCoverKind::C114) {
+                pushQuestionToPatient();
             }
-            if (!m_mp) {
-                return;
+        });
+    }
+    if (c->address) {
+        connect(c->address, &QLineEdit::textChanged, this, [this](const QString &) {
+            if (m_questionShown && m_rt.coverKind == ExCoverKind::C123) {
+                pushFioDataToPatient();
             }
-            m_mp->runtime = QStringLiteral("1.1.4");
-            m_mp->p1 = QStringLiteral("2");
-            m_mp->questionText = q;
-            m_mp->rebuild(false);
-            attachEngineToWindows();
-            if (m_running && m_patient) {
-                m_doctorPanel = false;
-                m_patient->showOnSecondaryScreen();
-                updatePatientScreenButton();
+        });
+    }
+    if (c->phone) {
+        connect(c->phone, &QLineEdit::textChanged, this, [this](const QString &) {
+            if (m_questionShown && m_rt.coverKind == ExCoverKind::C123) {
+                pushFioDataToPatient();
             }
         });
     }
@@ -628,13 +648,17 @@ void ExerciseHost::updateVisibility() {
         break;
     case ExCoverKind::C226: {
         const QString mode = c->combo1->currentText();
+        const bool about = mode == QLatin1String("3");
         vis(c->combo1, !run);
         vis(c->lcounter, mode == QLatin1String("2"));
         vis(c->lcorrect, mode == QLatin1String("2"));
         vis(c->bagain, mode == QLatin1String("2"));
-        vis(c->nextz, mode != QLatin1String("3"));
-        vis(c->rtf, mode == QLatin1String("3"));
-        c->mirror->setVisible(mode != QLatin1String("3"));
+        vis(c->nextz, !about);
+        vis(c->rtf, about);
+        c->mirror->setVisible(!about);
+        if (about && c->rtf) {
+            c->rtf->raise();
+        }
         break;
     }
     case ExCoverKind::C121: {
@@ -651,23 +675,33 @@ void ExerciseHost::updateVisibility() {
     case ExCoverKind::C123: {
         const QString mode = c->combo2->currentText();
         const bool cards = mode == QLatin1String("2");
+        const bool ownData = mode == QLatin1String("1");
         c->combo1->setVisible(cards);
         c->label1->setVisible(cards);
         c->combo2->setVisible(!run);
         c->nextz->setVisible(cards);
         c->dataBox->raise();
-        c->showCheck->setVisible(mode != QLatin1String("3"));
-        c->dataBox->setVisible(mode == QLatin1String("1"));
+        // Зад.1 — кнопка Показать/Скрыть; зад.2 — чекбокс; зад.3 — ничего.
+        if (c->showQuestion) {
+            c->showQuestion->setVisible(ownData);
+        }
+        if (c->showCheck) {
+            c->showCheck->setVisible(cards);
+        }
+        c->dataBox->setVisible(ownData);
         c->mirror->setVisible(mode != QLatin1String("3"));
-        if (mode == QLatin1String("1")) {
+        if (ownData) {
             c->fioLabel->setText(QStringLiteral("ФИО: ") + m_ctx.patientFio);
             const QStringList lines = QFileInfo::exists(for123File(m_ctx.patientId))
                                           ? readTextFile(for123File(m_ctx.patientId)).split(QLatin1Char('\n'))
                                           : QStringList();
             if (lines.size() > 2) {
+                QSignalBlocker ba(c->address);
+                QSignalBlocker bp(c->phone);
                 c->address->setText(lines[1].trimmed());
                 c->phone->setText(lines[2].trimmed());
             }
+            syncShowQuestionButton();
         }
         break;
     }
@@ -772,8 +806,8 @@ void ExerciseHost::applyParams(bool fresh) {
         m_mp->p2 = c->combo1->currentText();
         m_mp->rebuild(fresh);
         if (m_rt.assetFolder == QLatin1String("1.1.3")) {
-            // 7.1: без подписей — «ПОКАЖИ предметные картинки».
-            c->modeLabel->setText(m_modeTag == QLatin1String("1") ? QStringLiteral("ПОКАЖИ предметные картинки")
+            // 7.1: без подписей — «Покажи предметные картинки».
+            c->modeLabel->setText(m_modeTag == QLatin1String("1") ? QStringLiteral("Покажи предметные картинки")
                                                                   : QStringLiteral("Подпишите предметные картинки"));
         } else {
             c->modeLabel->setText(m_modeTag == QLatin1String("1") ? QStringLiteral("Покажите сюжетные картинки")
@@ -915,12 +949,15 @@ void ExerciseHost::onParamChanged(QComboBox *source) {
         m_ex = 1;
         break;
     case ExCoverKind::C123:
+        // Смена задания: скрыть данные на пациенте (кнопка снова «Показать…»).
+        setQuestionShown(false);
         break;
     case ExCoverKind::C121:
         m_hintShown = false;
         break;
     case ExCoverKind::C114:
-        // _114.comboBox1_SelectedIndexChanged: us.showQuestion("") — экран пациента очищается
+        // _114.comboBox1_SelectedIndexChanged: вопрос на пациенте скрывается
+        setQuestionShown(false);
         if (m_mp) {
             m_mp->questionText.clear();
         }
@@ -936,10 +973,14 @@ void ExerciseHost::onParamChanged(QComboBox *source) {
         break;
     }
     updateVisibility();
-    if (isWrittenMode() && m_running == false) {
+    // 2.2.6 зад.3: даже до «Начать» нужно очистить сцену задания 2 на зеркале.
+    if (isWrittenMode() && m_running == false && m_rt.coverKind != ExCoverKind::C226) {
         return;
     }
     applyParams(true);
+    if (m_rt.coverKind == ExCoverKind::C226) {
+        attachEngineToWindows();
+    }
     if (m_rt.coverKind == ExCoverKind::C121 && m_mp) {
         m_mp->setHintVisible(false);
         if (c->showp) {
@@ -1088,10 +1129,18 @@ void ExerciseHost::onBegin() {
     // правки врача до старта (2.1.2 открытый ответ, 2.1.3 замены) сохраняются.
     if (m_rt.coverKind == ExCoverKind::C123) {
         applyParams(true);
+    } else if (m_rt.coverKind == ExCoverKind::C226) {
+        // Зад.3: очистить сцену зад.2 до показа about.rtf на зеркале/пациенте.
+        applyParams(true);
     } else if (m_rt.coverKind == ExCoverKind::C225 || m_rt.coverKind == ExCoverKind::C114 ||
                (m_active && m_active->block)) {
         // _114.beginu_Click: us.initEx заново — выделения пациента сбрасываются
         applyParams(false);
+    }
+    if (m_rt.coverKind == ExCoverKind::C114
+        || (m_rt.coverKind == ExCoverKind::C123 && c->combo2 && c->combo2->currentText() == QLatin1String("1"))) {
+        // При «Начать» контент на пациенте скрыт, пока не нажмут «Показать…».
+        setQuestionShown(false);
     }
     if (m_rt.coverKind == ExCoverKind::C222 && m_st) {
         // _222.beginu_Click: новый uprSpace — рассказ у пациента скрыт до «Показать на экране пациента»
@@ -1163,6 +1212,69 @@ void ExerciseHost::loadStandardTextDocument() {
         RtfCover::loadInto(edit, ExAssets::exnPath(QStringLiteral("1.1.1/text.rtf")));
     } else if (m_rt.coverKind == ExCoverKind::C114) {
         RtfCover::loadInto(edit, ExAssets::exnPath(QStringLiteral("1.1.4/ans1.rtf")));
+    }
+}
+
+void ExerciseHost::syncShowQuestionButton() {
+    if (!m_cover || !m_cover->showQuestion) {
+        return;
+    }
+    // Те же подписи, что у 2.2.2: «Показать…» / «Скрыть…».
+    m_cover->showQuestion->setImagePath(ExAssets::exnPath(
+        m_questionShown ? QStringLiteral("2.2.2/Скрыть  на экране пациента.png")
+                        : QStringLiteral("2.2.2/Показать на экране пациента.png")));
+}
+
+void ExerciseHost::pushQuestionToPatient() {
+    if (!m_mp || !m_cover || !m_cover->question) {
+        return;
+    }
+    QString q = m_cover->question->text().trimmed();
+    if (q == QStringLiteral("Написать вопрос")) {
+        q.clear();
+    }
+    m_mp->runtime = QStringLiteral("1.1.4");
+    m_mp->p1 = QStringLiteral("2");
+    m_mp->questionText = m_questionShown ? q : QString();
+    m_mp->rebuild(false);
+    attachEngineToWindows();
+    if (m_questionShown && m_running && m_patient) {
+        m_doctorPanel = false;
+        m_patient->showOnSecondaryScreen();
+        updatePatientScreenButton();
+    }
+}
+
+void ExerciseHost::pushFioDataToPatient() {
+    if (!m_mp || !m_cover || m_rt.coverKind != ExCoverKind::C123) {
+        return;
+    }
+    if (m_questionShown) {
+        applyParams(false);
+        attachEngineToWindows();
+        if (m_running && m_patient) {
+            m_doctorPanel = false;
+            m_patient->showOnSecondaryScreen();
+            updatePatientScreenButton();
+        }
+    } else {
+        attachEngineToWindows();
+    }
+}
+
+void ExerciseHost::setQuestionShown(bool shown) {
+    if (m_questionShown == shown) {
+        if (!shown) {
+            syncShowQuestionButton();
+        }
+        return;
+    }
+    m_questionShown = shown;
+    syncShowQuestionButton();
+    if (m_rt.coverKind == ExCoverKind::C123) {
+        pushFioDataToPatient();
+    } else {
+        pushQuestionToPatient();
     }
 }
 

@@ -62,23 +62,28 @@ void StoriesEngine::rebuild() {
     const QString body = t[rec * 3 + 1].trimmed();
     const QString questions = t[rec * 3 + 2].trimmed();
     // uprSpace: stories.Top=100, Left=550; контролы по stories.Designer.cs / initEx.
-    // 17.1: шрифт +4 pt на обоих экранах (было 16/14/12/14).
+    // Пациент: 20/18/16/18; специалист (зеркало мельче) — ещё +4 pt.
     const int hostX = 550;
     const int hostY = 100;
-    auto add = [&](const QPixmap &pm, int x, int y, const QString &name) {
+    auto add = [&](const QPixmap &patientPm, const QPixmap &doctorPm, int x, int y, const QString &name) {
         const int i = addSprite();
-        sprites[i].pix = pm;
-        sprites[i].w = pm.width();
-        sprites[i].h = pm.height();
+        sprites[i].pix = patientPm;
+        sprites[i].doctorPix = doctorPm;
+        sprites[i].w = patientPm.width();
+        sprites[i].h = patientPm.height();
         sprites[i].x = hostX + x;
         sprites[i].y = hostY + y;
         sprites[i].name = name;
         // у врача текст виден всегда; у пациента — после «Показать на экране пациента»
         sprites[i].doctorOnly = !contentVisible;
     };
-    add(renderText(title, 1000, 20, false, false), 297, 53, QStringLiteral("zag"));
-    add(renderText(body, 800, 18, false, false), 0, 104, QStringLiteral("text"));
-    add(renderText(QStringLiteral("Вопросы:"), 300, 16, true, false), 12, 424, QStringLiteral("label2"));
-    add(renderText(questions, 600, 18, false, false), 150, 104 + 280 + 15, QStringLiteral("questions"));
+    add(renderText(title, 1000, 20, false, false), renderText(title, 1000, 24, false, false), 297, 53,
+        QStringLiteral("zag"));
+    add(renderText(body, 800, 18, false, false), renderText(body, 900, 22, false, false), 0, 104,
+        QStringLiteral("text"));
+    add(renderText(QStringLiteral("Вопросы:"), 300, 16, true, false),
+        renderText(QStringLiteral("Вопросы:"), 300, 20, true, false), 12, 424, QStringLiteral("label2"));
+    add(renderText(questions, 600, 18, false, false), renderText(questions, 700, 22, false, false), 150,
+        104 + 280 + 15, QStringLiteral("questions"));
     emit changed();
 }

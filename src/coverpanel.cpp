@@ -175,7 +175,7 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         question->setFont(msFont(14));
         question->setGeometry(6, 743, 947, 29);
         question->setPlaceholderText(QStringLiteral("Написать вопрос"));
-        showQuestion = makeExnButton(ExAssets::exnPath(QStringLiteral("1.1.4/showp.png")), 385, 788, 274, 34);
+        showQuestion = makeExnButton(ExAssets::exnPath(QStringLiteral("2.2.2/Показать на экране пациента.png")), 385, 788, 274, 34);
         underlineBtn = makeExnButton(ExAssets::resourceImage(QStringLiteral("Подчеркивание.png")), 867, 64, 36, 34);
         boldBtn = makeExnButton(ExAssets::resourceImage(QStringLiteral("Жирный шрифт.png")), 909, 64, 36, 34);
         break;
@@ -240,35 +240,38 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         combo2 = makeCombo({QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3")}, 390, 19, 39, 24, 10);
         begin(18, 16);
         next(770, 16);
+        // Задание 1: Показать/Скрыть на экране пациента (как в беседе ур.2).
+        showQuestion = makeExnButton(ExAssets::exnPath(QStringLiteral("2.2.2/Показать на экране пациента.png")), 446, 16, 274, 34);
+        // Задание 2: прежний чекбокс для карточек.
         auto *cb = new QCheckBox(QStringLiteral("Показать на экране пользователя"), this);
         cb->setFont(msFont(8.25));
         cb->move(446, 22);
         cb->adjustSize();
         cb->setChecked(true);
         showCheck = cb;
-        // GroupBox в WinForms непрозрачен и перекрывает зеркало (mp.Top = 20).
+        // GroupBox: поля с отступом внутри рамки (раньше чуть вылезали за край).
         auto *box = new QGroupBox(QStringLiteral("Данные пациента"), this);
         box->setFont(msFont(12));
-        box->setGeometry(175, 219, 627, 431);
+        box->setGeometry(175, 219, 610, 400);
         box->setAutoFillBackground(true);
         dataBox = box;
         const QFont f14 = msFont(14);
         fioLabel = new QLabel(QStringLiteral("ФИО: "), box);
         fioLabel->setFont(f14);
-        fioLabel->setGeometry(61, 70, 540, 26);
+        fioLabel->setGeometry(24, 48, 560, 28);
         auto *la = new QLabel(QStringLiteral("Адрес:"), box);
         la->setFont(f14);
-        la->move(48, 120);
+        la->move(24, 100);
         address = new QLineEdit(box);
         address->setFont(f14);
-        address->setGeometry(149, 115, 444, 29);
+        address->setGeometry(130, 95, 450, 29);
         address->setPlaceholderText(QStringLiteral("Введите адрес пациента"));
         auto *lt = new QLabel(QStringLiteral("Телефон:"), box);
         lt->setFont(f14);
-        lt->move(48, 165);
+        lt->move(24, 150);
         phone = new QLineEdit(box);
         phone->setFont(f14);
-        phone->setGeometry(149, 160, 306, 29);
+        phone->setGeometry(130, 145, 300, 29);
         phone->setPlaceholderText(QStringLiteral("Введите телефон пациента"));
         break;
     }

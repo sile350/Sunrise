@@ -568,38 +568,59 @@ void MovewordsEngine::build226() {
     }
     const Group &g = groups[(currentEx - 1) % groups.size()];
     m_order = g.order;
-    // 21.4: правильная последовательность — над заданием, без узкой рамки, шрифт +3.
-    // Координаты с компенсацией host, чтобы после applyHost остаться у верха сцены.
+
+    // Pre-host координаты: applyHost сдвинет на m_hx/m_hy. Центр по 1920 — после сдвига
+    // блок остаётся по центру зеркала специалиста и экрана пациента.
+    auto centerX = [&](int spriteIndex) {
+        sprites[spriteIndex].x = (1920 - sprites[spriteIndex].w) / 2 - m_hx;
+    };
+
+    QVector<int> doctorSprites;
+    int y = 90; // ≈20 после applyHost при m_hy=-70
     {
-        const int baseX = 120 - m_hx;
-        int y = 8 - m_hy;
-        const int title = addText(QStringLiteral("Правильная последовательность:"), baseX, y, 18, Qt::black,
+        const int title = addText(QStringLiteral("Правильная последовательность:"), 0, y, 16, Qt::black,
                                   QStringLiteral("uptitle"), false, 100);
         sprites[title].doctorOnly = true;
-        y += 32;
+        doctorSprites.append(title);
+        y += sprites[title].h + 6;
         const QStringList order = m_order.split(QLatin1Char(';'), Qt::SkipEmptyParts);
         for (const QString &o : order) {
             const int k = o.trimmed().toInt();
             if (k < 0 || k >= g.words.size()) {
                 continue;
             }
-            const int i = addText(g.words[k], baseX, y, 22, Qt::black, QStringLiteral("up"), false, 100);
+            const int i = addText(g.words[k], 0, y, 18, Qt::black, QStringLiteral("up"), false, 100);
             sprites[i].doctorOnly = true;
-            y += 30;
+            doctorSprites.append(i);
+            y += sprites[i].h + 4;
         }
     }
-    // Задание пациента ниже блока «правильная последовательность».
-    const int frameY = 280;
-    addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line2.png")), 200, frameY, QStringLiteral("rm1"), 140);
-    m_slotsY.clear();
-    const int wordX = 220;
-    for (int k = 0; k < g.words.size(); ++k) {
-        const int y = frameY + 40 + 42 * k;
-        const int i = addText(g.words[k], wordX, y, 26, Qt::black, QString::number(k), true, 80);
-        sprites[i].word = g.words[k];
-        m_slotsY.append(y);
+    for (int i : doctorSprites) {
+        centerX(i);
     }
-    addDoneButton(1585, 750);
+
+    // Задание пациента — ниже подсказки врача, предложения внутри рамки line2 (850×450).
+    const int frameY = y + 28;
+    const int frame = addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line2.png")), 0, frameY, QStringLiteral("rm1"), 100);
+    centerX(frame);
+    m_slotsY.clear();
+    const int nWords = g.words.size();
+    const int innerTop = frameY + 36;
+    const int innerBot = frameY + sprites[frame].h - 36;
+    const int step = nWords > 0 ? qMax((innerBot - innerTop) / nWords, 36) : 40;
+    QVector<int> wordSprites;
+    for (int k = 0; k < nWords; ++k) {
+        const int wy = innerTop + step * k;
+        const int i = addText(g.words[k], 0, wy, 22, Qt::black, QString::number(k), true, 90);
+        sprites[i].word = g.words[k];
+        wordSprites.append(i);
+        m_slotsY.append(wy);
+    }
+    for (int i : wordSprites) {
+        centerX(i);
+    }
+    // «Готово» справа от рамки — без наложения на предложения.
+    addDoneButton(sprites[frame].x + sprites[frame].w + 24, frameY + sprites[frame].h - 100);
 }
 
 void MovewordsEngine::build311() {

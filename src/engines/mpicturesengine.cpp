@@ -117,7 +117,7 @@ void MPicturesEngine::build112() {
         QString label;
         if (folder == QLatin1String("1.1.3")) {
             // 7.1: без подписей — «ПОКАЖИ…»; с подписями — «Подпишите…».
-            label = show ? QStringLiteral("ПОКАЖИ предметные картинки")
+            label = show ? QStringLiteral("Покажи предметные картинки")
                          : QStringLiteral("Подпишите предметные картинки");
         } else {
             label = show ? QStringLiteral("Покажите сюжетные картинки")

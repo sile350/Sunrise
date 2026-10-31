@@ -481,7 +481,7 @@ void ClinicalBrowserController::refreshLinuxView() {
     }
     if (m_protocolsMode) {
         m_web->hide();
-    } else {
+        } else {
         m_web->show();
         m_web->raise();
     }
@@ -1061,8 +1061,8 @@ void ClinicalBrowserController::printRtf(const QString &fileName) {
         QPrintDialog dialog(&printer, panel);
         dialog.setWindowTitle(QStringLiteral("Печать"));
         if (dialog.exec() != QDialog::Accepted) {
-            return;
-        }
+        return;
+    }
         QTextDocument doc;
         doc.setHtml(html);
         doc.print(&printer);
@@ -1185,8 +1185,8 @@ void ClinicalBrowserController::handleClick(const QString &id, const QString &pa
     if (id == QLatin1String("atog21")) {
         if (m_fagerstromScore < 0) {
             showError(QStringLiteral("Пройдены не все пункты теста"));
-            return;
-        }
+        return;
+    }
         appendTo(SummaryPanel::Corr, today() + QStringLiteral(" Отказ от курения. Оценка степени никотиновой зависимости (тест Фагерстрема). Результат - %1. %2")
                                                    .arg(m_fagerstromScore).arg(m_fagerstromVerdict));
         return;
@@ -1237,8 +1237,8 @@ void ClinicalBrowserController::handleClick(const QString &id, const QString &pa
     }
     if (id == QLatin1String("idPrintDih0")) {
         printRtf(QStringLiteral("dih0.rtf"));
-        return;
-    }
+            return;
+        }
     if (id == QLatin1String("idPrintCorr1")) {
         printRtf(QStringLiteral("cor1.rtf"));
         appendTo(SummaryPanel::Corr, today() + QStringLiteral(" Предоставлены рекомендации по мотивированию пациента к отказу от табака."));
@@ -1278,21 +1278,21 @@ void ClinicalBrowserController::runItog() {
                 verdict = QStringLiteral("Вывод: низкий риска повторного инсульта (менее 4% в год)");
             } else if (score <= 6) {
                 verdict = QStringLiteral("Вывод: высокий риск повторного инсульта (более 4% в год)");
-            } else {
+        } else {
                 verdict = QStringLiteral("Вывод: очень высокий риск повторного инсульта.");
             }
         } else if (score <= 3) {
             verdict = QStringLiteral("Вывод: Риск развития инсульта в течение 2 дней: 1.0%<br>"
                                      "Риск развития инсульта в течение 7 дней: 1.2%<br>"
-                                     "Риск развития инсульта в течение 90 дней: 3.1%");
+                "Риск развития инсульта в течение 90 дней: 3.1%");
         } else if (score <= 5) {
             verdict = QStringLiteral("Вывод: Риск развития инсульта в течение 2 дней: 4.1%<br>"
                                      "Риск развития инсульта в течение 7 дней: 5.9%<br>"
-                                     "Риск развития инсульта в течение 90 дней: 9.8%");
+                "Риск развития инсульта в течение 90 дней: 9.8%");
         } else {
             verdict = QStringLiteral("Вывод: Риск развития инсульта в течение 2 дней: 8.1%<br>"
                                      "Риск развития инсульта в течение 7 дней: 11.7%<br>"
-                                     "Риск развития инсульта в течение 90 дней: 17.8%");
+                "Риск развития инсульта в течение 90 дней: 17.8%");
         }
         const QString label = QStringLiteral("Вывод:");
         setInnerHtml(QStringLiteral("idv"), QStringLiteral("<b>%1</b>%2").arg(label, verdict.mid(label.size())));

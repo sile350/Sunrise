@@ -4326,20 +4326,9 @@ void SunriseWindow::updateExerciseChrome() {
         }
     }
 
-    // Кнопки управления окном — всегда (кроме экрана входа).
-    if (m_bClose) {
-        m_bClose->setVisible(!enter);
-    }
-    if (m_bLine) {
-        m_bLine->setVisible(!enter);
-    }
-    if (m_bUp) {
-        m_bUp->setVisible(!enter);
-    }
-
     if (exerciseOpen) {
-        // До старта: инд. программа, ФИО, i, выход, настройки (если есть), окно.
-        // При «Начать»: скрыть все кнопки шапки; ФИО остаётся (это не кнопка).
+        // До старта: инд. программа, ФИО, i, выход, настройки, кнопки окна.
+        // При «Начать»: скрыть ВСЕ кнопки шапки (включая свернуть/развернуть/закрыть); ФИО остаётся.
         const bool idle = !exerciseRunning;
         if (m_indProgramBtn) {
             m_indProgramBtn->setVisible(idle);
@@ -4356,6 +4345,15 @@ void SunriseWindow::updateExerciseChrome() {
         }
         if (m_bSettings) {
             m_bSettings->setVisible(idle && settingsAvailable());
+        }
+        if (m_bClose) {
+            m_bClose->setVisible(idle);
+        }
+        if (m_bLine) {
+            m_bLine->setVisible(idle);
+        }
+        if (m_bUp) {
+            m_bUp->setVisible(idle);
         }
         if (m_bSave) {
             m_bSave->hide();
@@ -4387,16 +4385,27 @@ void SunriseWindow::updateExerciseChrome() {
         if (m_bSettings && m_bSettings->isVisible()) {
             m_bSettings->raise();
         }
-        if (m_bClose) {
+        if (m_bClose && m_bClose->isVisible()) {
             m_bClose->raise();
         }
-        if (m_bLine) {
+        if (m_bLine && m_bLine->isVisible()) {
             m_bLine->raise();
         }
-        if (m_bUp) {
+        if (m_bUp && m_bUp->isVisible()) {
             m_bUp->raise();
         }
         return;
+    }
+
+    // Вне упражнения: кнопки окна видны (кроме экрана входа).
+    if (m_bClose) {
+        m_bClose->setVisible(!enter);
+    }
+    if (m_bLine) {
+        m_bLine->setVisible(!enter);
+    }
+    if (m_bUp) {
+        m_bUp->setVisible(!enter);
     }
 
     if (m_bExit) {
