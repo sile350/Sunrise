@@ -1238,11 +1238,8 @@ void ExerciseHost::pushQuestionToPatient() {
     m_mp->questionText = m_questionShown ? q : QString();
     m_mp->rebuild(false);
     attachEngineToWindows();
-    if (m_questionShown && m_running && m_patient) {
-        m_doctorPanel = false;
-        m_patient->showOnSecondaryScreen();
-        updatePatientScreenButton();
-    }
+    // Не вызывать showOnSecondaryScreen здесь: при вводе каждого символа окно пациента
+    // забирает фокус и «снимает» ввод в поле вопроса.
 }
 
 void ExerciseHost::pushFioDataToPatient() {
@@ -1252,14 +1249,10 @@ void ExerciseHost::pushFioDataToPatient() {
     if (m_questionShown) {
         applyParams(false);
         attachEngineToWindows();
-        if (m_running && m_patient) {
-            m_doctorPanel = false;
-            m_patient->showOnSecondaryScreen();
-            updatePatientScreenButton();
-        }
     } else {
         attachEngineToWindows();
     }
+    // showOnSecondaryScreen — только при переключении «Показать», не при textChanged.
 }
 
 void ExerciseHost::setQuestionShown(bool shown) {
@@ -1275,6 +1268,13 @@ void ExerciseHost::setQuestionShown(bool shown) {
         pushFioDataToPatient();
     } else {
         pushQuestionToPatient();
+    }
+    if (shown && m_running && m_patient) {
+        m_doctorPanel = false;
+        m_patient->showOnSecondaryScreen();
+        updatePatientScreenButton();
+    } else {
+        updatePatientScreenButton();
     }
 }
 

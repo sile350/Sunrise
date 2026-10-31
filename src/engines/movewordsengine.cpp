@@ -569,58 +569,67 @@ void MovewordsEngine::build226() {
     const Group &g = groups[(currentEx - 1) % groups.size()];
     m_order = g.order;
 
-    // Pre-host координаты: applyHost сдвинет на m_hx/m_hy. Центр по 1920 — после сдвига
-    // блок остаётся по центру зеркала специалиста и экрана пациента.
+    // Pre-host координаты: applyHost сдвинет на m_hx/m_hy. Центр по 1920.
     auto centerX = [&](int spriteIndex) {
         sprites[spriteIndex].x = (1920 - sprites[spriteIndex].w) / 2 - m_hx;
     };
+    auto placeInFrame = [&](int frameIdx, const QVector<int> &items, int padTop, int padBot) {
+        if (items.isEmpty()) {
+            return;
+        }
+        const int top = sprites[frameIdx].y + padTop;
+        const int bot = sprites[frameIdx].y + sprites[frameIdx].h - padBot;
+        const int step = qMax((bot - top) / items.size(), 28);
+        for (int k = 0; k < items.size(); ++k) {
+            const int i = items[k];
+            sprites[i].y = top + step * k;
+            centerX(i);
+        }
+    };
+
+    // Обе рамки 850×450: сверху — правильный порядок (только врач), снизу — задание пациента.
+    const int docFrameY = 90; // ≈20 после host (m_hy=-70)
+    const int docFrame = addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line.png")), 0, docFrameY,
+                                  QStringLiteral("upframe"), 100);
+    sprites[docFrame].doctorOnly = true;
+    centerX(docFrame);
 
     QVector<int> doctorSprites;
-    int y = 90; // ≈20 после applyHost при m_hy=-70
     {
-        const int title = addText(QStringLiteral("Правильная последовательность:"), 0, y, 16, Qt::black,
+        const int title = addText(QStringLiteral("Правильная последовательность:"), 0, 0, 16, Qt::black,
                                   QStringLiteral("uptitle"), false, 100);
         sprites[title].doctorOnly = true;
         doctorSprites.append(title);
-        y += sprites[title].h + 6;
         const QStringList order = m_order.split(QLatin1Char(';'), Qt::SkipEmptyParts);
         for (const QString &o : order) {
             const int k = o.trimmed().toInt();
             if (k < 0 || k >= g.words.size()) {
                 continue;
             }
-            const int i = addText(g.words[k], 0, y, 18, Qt::black, QStringLiteral("up"), false, 100);
+            const int i = addText(g.words[k], 0, 0, 18, Qt::black, QStringLiteral("up"), false, 100);
             sprites[i].doctorOnly = true;
             doctorSprites.append(i);
-            y += sprites[i].h + 4;
         }
     }
-    for (int i : doctorSprites) {
-        centerX(i);
-    }
+    // Больше верхний отступ, чтобы первая строка не вылезала за рамку.
+    placeInFrame(docFrame, doctorSprites, 48, 36);
 
-    // Задание пациента — ниже подсказки врача, предложения внутри рамки line2 (850×450).
-    const int frameY = y + 28;
+    const int frameY = docFrameY + sprites[docFrame].h + 24;
     const int frame = addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line2.png")), 0, frameY, QStringLiteral("rm1"), 100);
     centerX(frame);
     m_slotsY.clear();
-    const int nWords = g.words.size();
-    const int innerTop = frameY + 36;
-    const int innerBot = frameY + sprites[frame].h - 36;
-    const int step = nWords > 0 ? qMax((innerBot - innerTop) / nWords, 36) : 40;
     QVector<int> wordSprites;
-    for (int k = 0; k < nWords; ++k) {
-        const int wy = innerTop + step * k;
-        const int i = addText(g.words[k], 0, wy, 22, Qt::black, QString::number(k), true, 90);
+    for (int k = 0; k < g.words.size(); ++k) {
+        const int i = addText(g.words[k], 0, 0, 22, Qt::black, QString::number(k), true, 90);
         sprites[i].word = g.words[k];
         wordSprites.append(i);
-        m_slotsY.append(wy);
     }
+    placeInFrame(frame, wordSprites, 52, 40);
     for (int i : wordSprites) {
-        centerX(i);
+        m_slotsY.append(sprites[i].y);
     }
-    // «Готово» справа от рамки — без наложения на предложения.
-    addDoneButton(sprites[frame].x + sprites[frame].w + 24, frameY + sprites[frame].h - 100);
+    // «Готово» правее рамки.
+    addDoneButton(sprites[frame].x + sprites[frame].w + 90, frameY + sprites[frame].h - 110);
 }
 
 void MovewordsEngine::build311() {
