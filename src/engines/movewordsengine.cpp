@@ -594,12 +594,9 @@ void MovewordsEngine::build226() {
     sprites[docFrame].doctorOnly = true;
     centerX(docFrame);
 
+    // Заголовок «Правильная последовательность» уже на line.png — не дублируем текстом.
     QVector<int> doctorSprites;
     {
-        const int title = addText(QStringLiteral("Правильная последовательность:"), 0, 0, 16, Qt::black,
-                                  QStringLiteral("uptitle"), false, 100);
-        sprites[title].doctorOnly = true;
-        doctorSprites.append(title);
         const QStringList order = m_order.split(QLatin1Char(';'), Qt::SkipEmptyParts);
         for (const QString &o : order) {
             const int k = o.trimmed().toInt();
@@ -611,8 +608,8 @@ void MovewordsEngine::build226() {
             doctorSprites.append(i);
         }
     }
-    // Больше верхний отступ, чтобы первая строка не вылезала за рамку.
-    placeInFrame(docFrame, doctorSprites, 48, 36);
+    // Сверху место под заголовок на картинке; снизу — больший зазор до рамки.
+    placeInFrame(docFrame, doctorSprites, 56, 56);
 
     const int frameY = docFrameY + sprites[docFrame].h + 24;
     const int frame = addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line2.png")), 0, frameY, QStringLiteral("rm1"), 100);
@@ -624,7 +621,8 @@ void MovewordsEngine::build226() {
         sprites[i].word = g.words[k];
         wordSprites.append(i);
     }
-    placeInFrame(frame, wordSprites, 52, 40);
+    // Больше отступ сверху для первого предложения; снизу — чуть свободнее.
+    placeInFrame(frame, wordSprites, 72, 52);
     for (int i : wordSprites) {
         m_slotsY.append(sprites[i].y);
     }
