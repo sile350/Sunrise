@@ -61,9 +61,9 @@ QString MovewordsEngine::dataPath(const QString &file) const {
 }
 
 int MovewordsEngine::addText(const QString &text, int x, int y, int fontSize, const QColor &c, const QString &name,
-                             bool movable, int scale) {
+                             bool movable, int scale, int extraPadX) {
     const int i = addSprite();
-    sprites[i].setText(text, fontSize, c, scale);
+    sprites[i].setText(text, fontSize, c, scale, false, extraPadX);
     sprites[i].x = x;
     sprites[i].y = y;
     sprites[i].name = name;
@@ -568,30 +568,36 @@ void MovewordsEngine::build226() {
     }
     const Group &g = groups[(currentEx - 1) % groups.size()];
     m_order = g.order;
-    addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line2.png")), 400, 350, QStringLiteral("rm1"), 120);
-    m_slotsY.clear();
-    for (int k = 0; k < g.words.size(); ++k) {
-        const int y = (400 + 30 * k) * 100 / 60 - 180;
-        const int i = addText(g.words[k], 170 * 100 / 60 + 200, y, 26, Qt::black, QString::number(k), true, 80);
-        sprites[i].word = g.words[k];
-        m_slotsY.append(y);
-    }
-    // d2.2.6/2: врач видит рамку «Правильная последовательность» (rm2) с предложениями в верном порядке («up»).
-    // В оригинале она над рамкой пациента; в общей сцене — справа сверху, свободная область.
+    // 21.4: правильная последовательность — над заданием, без узкой рамки, шрифт +3.
+    // Координаты с компенсацией host, чтобы после applyHost остаться у верха сцены.
     {
-        const int rm2 = addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line.png")), 1390 - m_hx, 10 - m_hy, QStringLiteral("rm2"), 60);
-        sprites[rm2].doctorOnly = true;
+        const int baseX = 120 - m_hx;
+        int y = 8 - m_hy;
+        const int title = addText(QStringLiteral("Правильная последовательность:"), baseX, y, 18, Qt::black,
+                                  QStringLiteral("uptitle"), false, 100);
+        sprites[title].doctorOnly = true;
+        y += 32;
         const QStringList order = m_order.split(QLatin1Char(';'), Qt::SkipEmptyParts);
-        int y = 58;
         for (const QString &o : order) {
             const int k = o.trimmed().toInt();
             if (k < 0 || k >= g.words.size()) {
                 continue;
             }
-            const int i = addText(g.words[k], 1405 - m_hx, y - m_hy, 26, Qt::black, QStringLiteral("up"), false, 50);
+            const int i = addText(g.words[k], baseX, y, 22, Qt::black, QStringLiteral("up"), false, 100);
             sprites[i].doctorOnly = true;
             y += 30;
         }
+    }
+    // Задание пациента ниже блока «правильная последовательность».
+    const int frameY = 280;
+    addImage(ExAssets::exnPath(QStringLiteral("2.2.6/line2.png")), 200, frameY, QStringLiteral("rm1"), 140);
+    m_slotsY.clear();
+    const int wordX = 220;
+    for (int k = 0; k < g.words.size(); ++k) {
+        const int y = frameY + 40 + 42 * k;
+        const int i = addText(g.words[k], wordX, y, 26, Qt::black, QString::number(k), true, 80);
+        sprites[i].word = g.words[k];
+        m_slotsY.append(y);
     }
     addDoneButton(1585, 750);
 }
@@ -628,22 +634,27 @@ void MovewordsEngine::build312() {
     }
     m_order = t[2].trimmed();
     const bool support = p1 == QLatin1String("1");
-    const int ram = addImage(ExAssets::exnPath(QStringLiteral("3.1.2/line%1.png").arg(dataNumber)), 200 * 100 / 80, 240 * 100 / 80, QStringLiteral("ram"));
-    int mx = 210 * 100 / 80;
+    // 23.5 / 24.4: шрифт ×1.5 и шире зона захвата для сенсорного экрана.
+    constexpr int kLetterFont = 52; // было 35
+    constexpr int kLetterPad = 18;
+    const int ram = addImage(ExAssets::exnPath(QStringLiteral("3.1.2/line%1.png").arg(dataNumber)), 120 * 100 / 80,
+                             200 * 100 / 80, QStringLiteral("ram"), 130);
+    int mx = 140 * 100 / 80;
     int first = -1;
     if (support) {
         const QStringList tok = t[0].split(QLatin1Char(' '), Qt::SkipEmptyParts);
         if (!tok.isEmpty()) {
-            first = addText(tok[0], 210 * 100 / 80, 243 * 100 / 80, 35, Qt::black, QStringLiteral("first"));
+            first = addText(tok[0], 140 * 100 / 80, 210 * 100 / 80, kLetterFont, Qt::black, QStringLiteral("first"), false,
+                            100, kLetterPad);
         }
         for (int i = 1; i < tok.size(); ++i) {
-            const int s = addText(tok[i], mx, 387, 35, Qt::black, QStringLiteral("var"), true);
-            mx += sprites[s].w;
+            const int s = addText(tok[i], mx, 420, kLetterFont, Qt::black, QStringLiteral("var"), true, 100, kLetterPad);
+            mx += sprites[s].w + 8;
         }
     } else {
         for (const QString &w : t[1].split(QLatin1Char(' '), Qt::SkipEmptyParts)) {
-            const int s = addText(w, mx, 387, 35, Qt::black, QStringLiteral("var"), true);
-            mx += sprites[s].w;
+            const int s = addText(w, mx, 420, kLetterFont, Qt::black, QStringLiteral("var"), true, 100, kLetterPad);
+            mx += sprites[s].w + 8;
         }
     }
     m_lineMax = sprites[ram].y + sprites[ram].h;
@@ -656,10 +667,10 @@ void MovewordsEngine::build312() {
         m_sortY = sprites[ram].y + 5;
         m_sortAlt = true;
     }
-    m_sortGap = 10;
+    m_sortGap = 12;
     // подсказка врачу — ответ
     doctorHint = m_order;
-    const int hint = addText(m_order, 250, 225, 25, Qt::black, QStringLiteral("pd"));
+    const int hint = addText(m_order, 250, 180, 25, Qt::black, QStringLiteral("pd"));
     sprites[hint].doctorOnly = true;
     addDoneButton(1290, 650);
 }
@@ -927,11 +938,27 @@ void MovewordsEngine::pressDone() {
 
 void MovewordsEngine::patientPress(const QPoint &p) {
     ExEngine::patientPress(p);
-    // 3.2.4: когда все три пропуска заполнены, буквы больше не двигаются (exname = "x"), работает только «Готово»
-    if (runtime == QLatin1String("3.2.4") && m_moving >= 0 && sprites[m_moving].name.startsWith(QLatin1Char('b')) &&
-        m_slotLetter[0] >= 0 && m_slotLetter[1] >= 0 && m_slotLetter[2] >= 0) {
+    // 3.2.4 письменно: когда все три пропуска заполнены, буквы больше не двигаются.
+    // 26.2 устно+подсказка: банк копируется — буквы банка можно брать всегда.
+    const bool copyLetters = runtime == QLatin1String("3.2.4") && showHints && p1 == QStringLiteral("Устно");
+    if (!copyLetters && runtime == QLatin1String("3.2.4") && m_moving >= 0
+        && sprites[m_moving].name.startsWith(QLatin1Char('b')) && m_slotLetter[0] >= 0 && m_slotLetter[1] >= 0
+        && m_slotLetter[2] >= 0) {
         m_dragging = false;
     }
+}
+
+void MovewordsEngine::patientMove(const QPoint &p) {
+    // 21.5: в режиме расстановки предложений — только вертикаль.
+    if (runtime == QLatin1String("2.2.6") && (p1 == QLatin1String("2")) && m_moving >= 0 && m_dragging
+        && m_moving < sprites.size() && sprites[m_moving].movable) {
+        ExSprite &s = sprites[m_moving];
+        s.x = m_start.x();
+        s.y = p.y() - m_off.y();
+        emit changed();
+        return;
+    }
+    ExEngine::patientMove(p);
 }
 
 // MouseUp: pressDone и выбор варианта срабатывают по спрайту, на котором нажали (точка отпускания не проверяется)
@@ -1059,11 +1086,15 @@ void MovewordsEngine::patientRelease(const QPoint &p) {
             }
         }
         std::sort(idx.begin(), idx.end(), [&](int a, int b) { return sprites[a].y < sprites[b].y; });
-        // saveSortIndexes: выравнивается только Y, X остаётся там, где предложение отпустили
+        // 21.5: только вертикальная перестановка; X фиксируем по исходному слоту.
         for (int k = 0; k < idx.size() && k < m_slotsY.size(); ++k) {
             sprites[idx[k]].y = int(m_slotsY[k]);
+            if (idx[k] < m_home.size()) {
+                sprites[idx[k]].x = m_home[idx[k]].x();
+            }
         }
-    } else if (runtime == QLatin1String("3.2.4") && s.name.startsWith(QLatin1Char('b'))) {
+    } else if (runtime == QLatin1String("3.2.4")
+               && (s.name.startsWith(QLatin1Char('b')) || s.name.startsWith(QLatin1String("bc")))) {
         int from = -1;
         for (int k = 0; k < 3; ++k) {
             if (m_slotLetter[k] == mv) {
@@ -1100,13 +1131,54 @@ void MovewordsEngine::patientRelease(const QPoint &p) {
                 target = k;
             }
         }
-        if (target > 0) {
+        // 26.2: устно + подсказка — копирование из банка; удаление при броске мимо; замена удаляет старую.
+        const bool copyMode = showHints && p1 == QStringLiteral("Устно");
+        auto retire = [&](int idx) {
+            if (idx < 0 || idx >= sprites.size()) {
+                return;
+            }
+            sprites[idx].visible = false;
+            sprites[idx].movable = false;
+            sprites[idx].name = QStringLiteral("_dead");
+        };
+        if (copyMode) {
+            const bool fromBank = from < 0 && s.name.startsWith(QLatin1Char('b')) && !s.name.startsWith(QLatin1String("bc"));
+            if (target > 0) {
+                const int prev = m_slotLetter[target - 1];
+                if (from >= 0) {
+                    m_slotLetter[from] = -1;
+                }
+                if (prev >= 0 && prev != mv) {
+                    retire(prev);
+                }
+                if (fromBank) {
+                    if (mv < m_home.size()) {
+                        s.x = m_home[mv].x();
+                        s.y = m_home[mv].y();
+                    }
+                    const int copy = addText(s.word, 0, 0, 40, Qt::black,
+                                             QStringLiteral("bc%1").arg(sprites.size()), true);
+                    m_home.append(QPoint(sprites[copy].x, sprites[copy].y));
+                    m_slotLetter[target - 1] = copy;
+                } else {
+                    m_slotLetter[target - 1] = mv;
+                }
+            } else if (from >= 0) {
+                retire(mv);
+                m_slotLetter[from] = -1;
+            } else if (fromBank) {
+                if (mv < m_home.size()) {
+                    s.x = m_home[mv].x();
+                    s.y = m_home[mv].y();
+                }
+            }
+        } else if (target > 0) {
             const int prev = m_slotLetter[target - 1];
             if (from >= 0) {
                 m_slotLetter[from] = -1;
             }
             if (prev >= 0 && prev != mv) {
-                // вытесненная буква уходит туда, откуда взяли новую (memX/memY)
+                // вытесненная буква уходит туда, откуда взяли новую
                 if (from >= 0) {
                     m_slotLetter[from] = prev;
                 } else {
@@ -1116,7 +1188,6 @@ void MovewordsEngine::patientRelease(const QPoint &p) {
             }
             m_slotLetter[target - 1] = mv;
         } else if (from >= 0) {
-            // брошена мимо пропусков — остаётся там, где отпустили
             m_slotLetter[from] = -1;
         }
         layout324();

@@ -206,6 +206,15 @@ void ProtocolEditor::keyPressEvent(QKeyEvent *event) {
             return;
         }
     }
+    // Пустые ячейки «Виды помощи» / «Характер…» не должны наследовать center от заголовка.
+    if (typing || newline || event->matches(QKeySequence::Paste)) {
+        QTextBlockFormat bf = cursor.blockFormat();
+        if (bf.alignment() != Qt::AlignLeft) {
+            bf.setAlignment(Qt::AlignLeft);
+            cursor.mergeBlockFormat(bf);
+            setTextCursor(cursor);
+        }
+    }
     if (newline) {
         cursor.insertText(QString(QChar(QChar::LineSeparator)));
         event->accept();

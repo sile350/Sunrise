@@ -69,6 +69,7 @@ void WolfEngine::rebuild() {
     placeArrow(QStringLiteral("arrayRight.png"), 638, QStringLiteral("arrayRight"));
 
     // textBox1 (Designer 170,64 / 606x170) + смещение wl.
+    // 20.1: шрифт задания +4 pt на обоих экранах (было 14).
     {
         sprites.prepend(ExSprite());
         const int t = 0;
@@ -77,9 +78,9 @@ void WolfEngine::rebuild() {
                                          "или коза, или капуста.  Если крестьянин оставит без присмотра волка с козой, то волк "
                                          "съест козу; если крестьянин оставит без присмотра козу с капустой, коза съест капусту. \n"
                                          "Как ему перевезти всех на другой берег?"),
-                          606, 170, 14);
-        sprites[t].x = 240 + 170;
-        sprites[t].y = -30 + 64;
+                          700, 210, 18);
+        sprites[t].x = 240 + 140;
+        sprites[t].y = -30 + 50;
         sprites[t].name = QStringLiteral("msg");
     }
 

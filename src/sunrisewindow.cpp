@@ -1523,7 +1523,9 @@ void SunriseWindow::buildUi() {
     m_protocolsTitle->hide();
     m_protocolsView = new ProtocolEditor(m_panelClinical);
     m_protocolsView->setObjectName(QStringLiteral("wprotocol"));
-    m_protocolsView->setGeometry(103, 174, 760, m_panelClinical->height() - 174 - 10);
+    // п.6: поле протоколов почти до заголовка (~30 px отступа).
+    const int protocolsViewY = 70 + m_protocolsTitle->height() + 30;
+    m_protocolsView->setGeometry(103, protocolsViewY, 760, m_panelClinical->height() - protocolsViewY - 10);
     m_protocolsView->hide();
 
     m_panelWork = new WorkPanelWidget(m_workStack);
@@ -1805,14 +1807,8 @@ void SunriseWindow::buildSlidePanels() {
             }
         }
     });
-    // «Сохранить» в панели настроек — только создание нового шаблона (экран «Сохранить как»).
-    connect(m_templateSaveAsButton, &ImageButton::clicked, this, [this]() {
-        if (m_templateNameEdit) {
-            m_templateNameEdit->clear();
-            m_templateNameEdit->setFocus();
-        }
-        showSettingsSaveTemplateView(true);
-    });
+    // «Сохранить»: имя нового шаблона — сразу в поле выбора комбо, без доп. экрана.
+    connect(m_templateSaveAsButton, &ImageButton::clicked, this, [this]() { saveCurrentAnamnesisTemplate(); });
     connect(saveTemplateBtn, &ImageButton::clicked, this, [this]() {
         const QString name = m_templateNameEdit->text().trimmed();
         if (name.isEmpty()) {
@@ -4342,24 +4338,24 @@ void SunriseWindow::updateExerciseChrome() {
     }
 
     if (exerciseOpen) {
-        // На странице упражнения (до старта): инд. программа, ФИО, i, настройки (если есть), окно.
-        // При «Начать» (12.1/13.2): скрыть всё кроме кнопок управления окном.
+        // До старта: инд. программа, ФИО, i, выход, настройки (если есть), окно.
+        // При «Начать»: скрыть все кнопки шапки; ФИО остаётся (это не кнопка).
         const bool idle = !exerciseRunning;
         if (m_indProgramBtn) {
             m_indProgramBtn->setVisible(idle);
         }
         if (m_patientTitle) {
-            m_patientTitle->setVisible(idle);
+            m_patientTitle->setVisible(true);
+            m_patientTitle->raise();
         }
         if (m_bInfo) {
             m_bInfo->setVisible(idle);
         }
-        if (m_bSettings) {
-            // 13.3: у упражнений без текстовых настроек (напр. сюжетные картинки) кнопки нет.
-            m_bSettings->setVisible(idle && settingsAvailable());
-        }
         if (m_bExit) {
-            m_bExit->hide();
+            m_bExit->setVisible(idle);
+        }
+        if (m_bSettings) {
+            m_bSettings->setVisible(idle && settingsAvailable());
         }
         if (m_bSave) {
             m_bSave->hide();
@@ -4382,11 +4378,11 @@ void SunriseWindow::updateExerciseChrome() {
         if (m_indProgramBtn && m_indProgramBtn->isVisible()) {
             m_indProgramBtn->raise();
         }
-        if (m_patientTitle && m_patientTitle->isVisible()) {
-            m_patientTitle->raise();
-        }
         if (m_bInfo && m_bInfo->isVisible()) {
             m_bInfo->raise();
+        }
+        if (m_bExit && m_bExit->isVisible()) {
+            m_bExit->raise();
         }
         if (m_bSettings && m_bSettings->isVisible()) {
             m_bSettings->raise();

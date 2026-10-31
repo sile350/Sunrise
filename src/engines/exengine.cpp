@@ -147,7 +147,7 @@ void ExSprite::setImage(const QString &file, int scalePercent) {
     h = pix.height();
 }
 
-void ExSprite::setText(const QString &text, int fontSize, const QColor &c, int scalePercent, bool italic) {
+void ExSprite::setText(const QString &text, int fontSize, const QColor &c, int scalePercent, bool italic, int extraPadX) {
     word = text;
     color = c;
     isText = true;
@@ -156,7 +156,7 @@ void ExSprite::setText(const QString &text, int fontSize, const QColor &c, int s
     font.setPixelSize(qMax(6, qRound(fontSize * 96.0 / 72.0 * scalePercent / 100.0)));
     QFontMetrics fm(font);
     const int px = font.pixelSize();
-    const int pad = qRound(px * 0.16);
+    const int pad = qRound(px * 0.16) + qMax(0, extraPadX);
     const int tw = fm.horizontalAdvance(text) + pad * 2;
     const int th = fm.height() + qRound(px * 0.1);
     pix = QPixmap(qMax(1, tw), qMax(1, th));
@@ -165,7 +165,7 @@ void ExSprite::setText(const QString &text, int fontSize, const QColor &c, int s
     p.setRenderHint(QPainter::TextAntialiasing, true);
     p.setFont(font);
     p.setPen(c);
-    p.drawText(QRect(pad, 0, tw, th), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, text);
+    p.drawText(QRect(pad, 0, tw - pad, th), Qt::AlignLeft | Qt::AlignVCenter | Qt::TextSingleLine, text);
     p.end();
     w = pix.width();
     h = pix.height();

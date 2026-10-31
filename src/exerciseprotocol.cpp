@@ -199,8 +199,15 @@ QString processTable(const Record &r) {
         if (four) {
             h += QStringLiteral("<td width='%1' valign='top' align='center'>%2</td>").arg(kFirst).arg(row.first);
         }
-        h += QStringLiteral("<td width='%1' valign='top'>%2</td>").arg(four ? kOr4 : kOr3).arg(row.orHtml);
-        h += QStringLiteral("<td width='%1' valign='top'>%2</td>").arg(four ? kHelp4 : kHelp3).arg(row.hlpHtml);
+        // «Характер деятельности» / «Виды помощи» — ввод слева (и при пустой ячейке).
+        const QString orCell = row.orHtml.trimmed().isEmpty() ? QStringLiteral("&nbsp;") : row.orHtml;
+        const QString hlpCell = row.hlpHtml.trimmed().isEmpty() ? QStringLiteral("&nbsp;") : row.hlpHtml;
+        h += QStringLiteral("<td width='%1' valign='top' align='left'><div align='left'>%2</div></td>")
+                 .arg(four ? kOr4 : kOr3)
+                 .arg(orCell);
+        h += QStringLiteral("<td width='%1' valign='top' align='left'><div align='left'>%2</div></td>")
+                 .arg(four ? kHelp4 : kHelp3)
+                 .arg(hlpCell);
         h += QStringLiteral("<td width='%1' valign='top' align='center'>%2</td>").arg(kScore).arg(row.score);
         h += QStringLiteral("</tr>");
     }
@@ -253,8 +260,10 @@ QString storedBody(const Record &r) {
         if (!r.firstColumn.isEmpty()) {
             s += QStringLiteral("<td valign='top'><div align='center'>") + row.first + QStringLiteral("</div></td>");
         }
-        s += QStringLiteral("<td valign='top'><div>") + row.orHtml + QStringLiteral("</div></td>");
-        s += QStringLiteral("<td valign='top'><div>") + row.hlpHtml + QStringLiteral("</div></td>");
+        const QString orCell = row.orHtml.trimmed().isEmpty() ? QStringLiteral("&nbsp;") : row.orHtml;
+        const QString hlpCell = row.hlpHtml.trimmed().isEmpty() ? QStringLiteral("&nbsp;") : row.hlpHtml;
+        s += QStringLiteral("<td valign='top' align='left'><div align='left'>") + orCell + QStringLiteral("</div></td>");
+        s += QStringLiteral("<td valign='top' align='left'><div align='left'>") + hlpCell + QStringLiteral("</div></td>");
         s += QStringLiteral("<td align='center'><div%1>%2</div></td></tr>")
                  .arg(r.hasMaxRow ? QStringLiteral(" id='idb%1'").arg(n) : QString(), row.score);
     }

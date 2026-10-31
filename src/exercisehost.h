@@ -78,6 +78,7 @@ private:
     void onItog();
     void showProtocol(const QString &protocolId);
     void saveProtocolEdits(const QList<int> &indexes);
+    void resetProtocolToTemplate();
     // логика
     void onBegin();
     void onStop();

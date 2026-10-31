@@ -101,6 +101,14 @@ ExerciseHost::ExerciseHost(const ExerciseRuntime &runtime, const ExerciseContext
     }
 
     m_cover = new CoverPanel(m_rt.coverKind, this);
+    // 24.5: для «Составление слов из слогов» (data2) — пункты комбо и значение по умолчанию.
+    if (m_rt.coverKind == ExCoverKind::C312 && m_rt.dataNumber == 2 && m_cover->combo1) {
+        m_cover->combo1->clear();
+        m_cover->combo1->addItem(QStringLiteral("Поставить 1 слог"));
+        m_cover->combo1->addItem(QStringLiteral("Убрать 1 слог"));
+        m_cover->combo1->setGeometry(380, 14, 180, 24);
+        m_cover->combo1->setCurrentIndex(1);
+    }
     buildLeftColumn();
     buildEngines();
     layoutCover();
@@ -414,8 +422,9 @@ void ExerciseHost::layoutCover() {
     case ExCoverKind::C211:
     case ExCoverKind::C212:
     case ExCoverKind::C221:
-    case ExCoverKind::C222:
-    case ExCoverKind::C226: top = 100; break;
+    case ExCoverKind::C222: top = 100; break;
+    // 21.4: зеркало ниже — место под «правильную последовательность» над заданием.
+    case ExCoverKind::C226: top = 130; break;
     case ExCoverKind::C213: top = 100; break;
     case ExCoverKind::C214: top = 330; break;
     case ExCoverKind::C225: top = 205; bottomPad = 130; break;
@@ -533,12 +542,24 @@ void ExerciseHost::wireCover() {
     }
     if (c->showQuestion) {
         connect(c->showQuestion, &ImageButton::clicked, this, [this]() {
+            // 8.2: показать введённый вопрос на экране пациента.
             QString q = m_cover->question->text();
             if (q == QStringLiteral("Написать вопрос")) {
                 q.clear();
             }
+            if (!m_mp) {
+                return;
+            }
+            m_mp->runtime = QStringLiteral("1.1.4");
+            m_mp->p1 = QStringLiteral("2");
             m_mp->questionText = q;
             m_mp->rebuild(false);
+            attachEngineToWindows();
+            if (m_running && m_patient) {
+                m_doctorPanel = false;
+                m_patient->showOnSecondaryScreen();
+                updatePatientScreenButton();
+            }
         });
     }
     if (c->showCheck) {
@@ -596,7 +617,9 @@ void ExerciseHost::updateVisibility() {
         break;
     case ExCoverKind::C221:
     case ExCoverKind::C222:
+        // 16.2 / 17.2: в процессе выполнения «Следующее задание» скрыта.
         vis(c->combo1, !run);
+        vis(c->nextz, !run);
         break;
     case ExCoverKind::C312:
         // _312.beginu_Click: комбобокс прячется только для data1 (3.1.2), в 3.2.2 (data2) остаётся
@@ -719,9 +742,17 @@ bool ExerciseHost::isWrittenMode() const {
 
 bool ExerciseHost::usesPatientWindow() const {
     // Как в оригинале: отдельный экран пациента только там, где есть uprSpace / зеркало.
-    // Текстовые/письменные режимы (инструкции 1.1.1, беседа ур.2, письменные варианты и т.п.) — только у врача.
+    // Текстовые/письменные режимы (инструкции 1.1.1, письменные варианты и т.п.) — только у врача.
+    // 8.2: беседа ур.2 — вопрос на экране пациента. 21.7: задание 3 «Составление рассказа» — about.rtf.
     if (m_rt.coverKind == ExCoverKind::C1 || m_rt.engineKind == ExEngineKind::None) {
         return false;
+    }
+    if (m_rt.coverKind == ExCoverKind::C114) {
+        return true;
+    }
+    if (m_rt.coverKind == ExCoverKind::C226 && m_cover && m_cover->combo1
+        && m_cover->combo1->currentText() == QLatin1String("3")) {
+        return true;
     }
     if (isWrittenMode()) {
         return false;
@@ -740,10 +771,14 @@ void ExerciseHost::applyParams(bool fresh) {
         m_mp->p1 = m_modeTag;
         m_mp->p2 = c->combo1->currentText();
         m_mp->rebuild(fresh);
-        c->modeLabel->setText(m_rt.assetFolder == QLatin1String("1.1.3")
-                                  ? QStringLiteral("Подпишите предметные картинки")
-                                  : (m_modeTag == QLatin1String("1") ? QStringLiteral("Покажите сюжетные картинки")
-                                                                    : QStringLiteral("Подпишите сюжетные картинки")));
+        if (m_rt.assetFolder == QLatin1String("1.1.3")) {
+            // 7.1: без подписей — «ПОКАЖИ предметные картинки».
+            c->modeLabel->setText(m_modeTag == QLatin1String("1") ? QStringLiteral("ПОКАЖИ предметные картинки")
+                                                                  : QStringLiteral("Подпишите предметные картинки"));
+        } else {
+            c->modeLabel->setText(m_modeTag == QLatin1String("1") ? QStringLiteral("Покажите сюжетные картинки")
+                                                                  : QStringLiteral("Подпишите сюжетные картинки"));
+        }
         c->modeLabel->adjustSize();
         break;
     case ExCoverKind::C114:
@@ -811,6 +846,9 @@ void ExerciseHost::applyParams(bool fresh) {
             case ExCoverKind::C323:
                 m_mw->p1 = c->combo1->currentText();
                 m_mw->p2 = c->combo2->currentText();
+                break;
+            case ExCoverKind::C324:
+                m_mw->p1 = c->combo1 ? c->combo1->currentText() : QStringLiteral("Устно");
                 break;
             default:
                 break;
@@ -921,11 +959,52 @@ void ExerciseHost::onParamChanged(QComboBox *source) {
 
 // ---------------- кнопки ----------------
 
+void ExerciseHost::resetProtocolToTemplate() {
+    m_protocolId.clear();
+    m_partly = false;
+    if (m_itogBtn) {
+        m_itogBtn->hide();
+    }
+    if (m_protocolView) {
+        m_protocolView->showEntries(
+            QString(), {ExProtocol::templateEntry(m_rt.htmlFolder + QStringLiteral("/template.html"))}, false);
+    }
+    refreshLeftSizes();
+}
+
 void ExerciseHost::setRunning(bool running) {
     const bool changed = (m_running != running);
     if (running && changed && m_form) {
         // При «Начать» сбрасываем галочки баллов / помощи / характера деятельности.
         m_form->clear();
+    }
+    // При «Начать» очистить область протокола до шапки шаблона (сохранённые — на вкладке «Протоколы»).
+    if (running && changed) {
+        switch (m_rt.coverKind) {
+        case ExCoverKind::C1:   // 4.1 речевые инструкции
+        case ExCoverKind::C114: // 8.4 беседа
+        case ExCoverKind::C121: // 9.4 автоматизированные ряды
+        case ExCoverKind::C123: // 11.6 ФИО/адрес/телефон
+        case ExCoverKind::C211: // 12.2 составление фраз
+        case ExCoverKind::C212: // 13.1 два несогласованных слова
+        case ExCoverKind::C213: // 14.1 фразы из несогласованных слов
+        case ExCoverKind::C214: // 15.1 причинно-следственная связь
+        case ExCoverKind::C223: // 18.2 логико-грамматические обороты
+        case ExCoverKind::C224: // 19.2 пословицы / устойчивые выражения
+        case ExCoverKind::C225: // 20.3 логические/математические задачи
+        case ExCoverKind::C311: // 22: пропущенные слоги
+        case ExCoverKind::C323: // 25: синонимы/антонимы
+        case ExCoverKind::C324: // 26: пропущенные буквы
+            resetProtocolToTemplate();
+            break;
+        case ExCoverKind::C312: // 24.6: слоги (data2); буквы (data1) — только счётчики
+            if (m_rt.dataNumber == 2) {
+                resetProtocolToTemplate();
+            }
+            break;
+        default:
+            break;
+        }
     }
     m_running = running;
     if (m_cover->beginu) {
@@ -966,9 +1045,12 @@ void ExerciseHost::onBegin() {
         setRunning(true);
         return;
     }
-    // 13.1: сюжетные картинки — можно начать до выделения картинки.
-    // Счётчики обнуляются при открытии упражнения; при «Начать» — только в _223/_224.beginu_Click_1
-    if (m_rt.coverKind == ExCoverKind::C223 || m_rt.coverKind == ExCoverKind::C224) {
+    // Счётчики «Выполнено»/«Верно» обнуляются при «Начать».
+    if (m_rt.coverKind == ExCoverKind::C214 || m_rt.coverKind == ExCoverKind::C223
+        || m_rt.coverKind == ExCoverKind::C224 || m_rt.coverKind == ExCoverKind::C225
+        || m_rt.coverKind == ExCoverKind::C311 || m_rt.coverKind == ExCoverKind::C312
+        || m_rt.coverKind == ExCoverKind::C323 || m_rt.coverKind == ExCoverKind::C324
+        || (m_rt.coverKind == ExCoverKind::C226 && c->combo1 && c->combo1->currentText() == QLatin1String("2"))) {
         m_ecounter = 0;
         m_ecorrect = 0;
     }

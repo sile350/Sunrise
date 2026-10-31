@@ -31,6 +31,7 @@ public:
     void setExplain(bool on);
 
     void patientPress(const QPoint &p) override;
+    void patientMove(const QPoint &p) override;
     void patientRelease(const QPoint &p) override;
     void doctorClick(const QPoint &p) override;
 
@@ -56,7 +57,7 @@ private:
     void build324();
     // помощники
     int addText(const QString &text, int x, int y, int fontSize = 26, const QColor &c = Qt::black,
-                const QString &name = QString(), bool movable = false, int scale = 100);
+                const QString &name = QString(), bool movable = false, int scale = 100, int extraPadX = 0);
     int addImage(const QString &path, int x, int y, const QString &name = QString(), int scale = 100);
     void snapshotHome();
     void sortWordsInLine(int lineMax, int left, int y, int gap);

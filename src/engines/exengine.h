@@ -51,7 +51,8 @@ struct ExSprite {
         return visible && px > x && px < x + w && py > y && py < y + h;
     }
     void setImage(const QString &file, int scalePercent = 100);
-    void setText(const QString &text, int fontSize = 26, const QColor &c = Qt::black, int scalePercent = 100, bool italic = false);
+    void setText(const QString &text, int fontSize = 26, const QColor &c = Qt::black, int scalePercent = 100,
+                 bool italic = false, int extraPadX = 0);
     // Многострочная метка с рамкой (Label BorderStyle=FixedSingle, AutoSize=false).
     void setBox(const QString &text, int width, int height, int pointSize, bool bordered = true, bool bold = false);
     void setCenterX(int totalWidth) { x = (totalWidth - w) / 2; }

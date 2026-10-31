@@ -61,9 +61,8 @@ void StoriesEngine::rebuild() {
     const QString title = t[rec * 3].trimmed();
     const QString body = t[rec * 3 + 1].trimmed();
     const QString questions = t[rec * 3 + 2].trimmed();
-    // uprSpace: stories.Top=100, Left=550; контролы по stories.Designer.cs / initEx:
-    // lzag (297,53) 16pt; ltext (0->242?,104) ширина 800, Arial 14; label2 (12,424) 12pt bold;
-    // lq: Top = ltext.Top + ltext.Height(280) + 15, Left 150, Width 600, Arial 14.
+    // uprSpace: stories.Top=100, Left=550; контролы по stories.Designer.cs / initEx.
+    // 17.1: шрифт +4 pt на обоих экранах (было 16/14/12/14).
     const int hostX = 550;
     const int hostY = 100;
     auto add = [&](const QPixmap &pm, int x, int y, const QString &name) {
@@ -74,12 +73,12 @@ void StoriesEngine::rebuild() {
         sprites[i].x = hostX + x;
         sprites[i].y = hostY + y;
         sprites[i].name = name;
-        // у врача (свой экземпляр stories) текст виден всегда; у пациента — после «Показать на экране пациента»
+        // у врача текст виден всегда; у пациента — после «Показать на экране пациента»
         sprites[i].doctorOnly = !contentVisible;
     };
-    add(renderText(title, 1000, 16, false, false), 297, 53, QStringLiteral("zag"));
-    add(renderText(body, 800, 14, false, false), 0, 104, QStringLiteral("text"));
-    add(renderText(QStringLiteral("Вопросы:"), 300, 12, true, false), 12, 424, QStringLiteral("label2"));
-    add(renderText(questions, 600, 14, false, false), 150, 104 + 280 + 15, QStringLiteral("questions"));
+    add(renderText(title, 1000, 20, false, false), 297, 53, QStringLiteral("zag"));
+    add(renderText(body, 800, 18, false, false), 0, 104, QStringLiteral("text"));
+    add(renderText(QStringLiteral("Вопросы:"), 300, 16, true, false), 12, 424, QStringLiteral("label2"));
+    add(renderText(questions, 600, 18, false, false), 150, 104 + 280 + 15, QStringLiteral("questions"));
     emit changed();
 }

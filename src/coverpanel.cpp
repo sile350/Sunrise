@@ -220,15 +220,15 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         break;
     }
     case ExCoverKind::C122: {
-        // Сдвинуты вправо относительно оригинала (218/364), чтобы подписи не наезжали друг на друга.
+        // 10.1: уже комбо «Стимульный материал», кнопки правее — не липнут к меню.
         label1 = makeLabel(QStringLiteral("Выполнение"), 250, 10, true, 10);
         combo1 = makeCombo({QStringLiteral("Устно"), QStringLiteral("Письменно с опорой"), QStringLiteral("Письменно без опоры")}, 238, 30, 130, 21);
         label2 = makeLabel(QStringLiteral("Стимульный материал"), 430, 10, true, 10);
-        combo2 = makeCombo({QStringLiteral("Пословицы"), QStringLiteral("Ожидаемые слова"), QStringLiteral("Устойчивые выражения")}, 427, 30, 188, 21);
+        combo2 = makeCombo({QStringLiteral("Пословицы"), QStringLiteral("Ожидаемые слова"), QStringLiteral("Устойчивые выражения")}, 427, 30, 155, 21);
         begin(6, 28);
-        next(781, 27);
-        showp = makeButton(QStringLiteral("showp.png"), 781, 71);
-        again(613, 27);
+        next(831, 27);
+        showp = makeButton(QStringLiteral("showp.png"), 831, 71);
+        again(663, 27);
         rightWrong(290, 102, 467, 102);
         addCounters(278, 157, 494, 157, false);
         hintLabel = makeLabel(QString(), 20, 215, true, 11);

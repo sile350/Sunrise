@@ -2,6 +2,7 @@
 
 #include <QFileInfo>
 #include <QRandomGenerator>
+#include <QSet>
 #include <QTimer>
 
 #include <algorithm>
@@ -114,11 +115,13 @@ void MPicturesEngine::build112() {
     // Спрайт есть всегда, чтобы индексы картинок (dSay) не менялись при переключении режима.
     {
         QString label;
-        if (show) {
-            label = QStringLiteral("Покажите сюжетные картинки");
-        }
         if (folder == QLatin1String("1.1.3")) {
-            label = QStringLiteral("Подпишите предметные картинки");
+            // 7.1: без подписей — «ПОКАЖИ…»; с подписями — «Подпишите…».
+            label = show ? QStringLiteral("ПОКАЖИ предметные картинки")
+                         : QStringLiteral("Подпишите предметные картинки");
+        } else {
+            label = show ? QStringLiteral("Покажите сюжетные картинки")
+                         : QStringLiteral("Подпишите сюжетные картинки");
         }
         const int li = addSprite();
         sprites[li].setText(label.isEmpty() ? QStringLiteral(" ") : label, 20, Qt::black, 100, true);
@@ -176,52 +179,208 @@ void MPicturesEngine::build112() {
     }
     // кнопка «готово» (sysImages\done.png) в оригинале в (1500, 600)
     addDoneButton(kBoxX + 1500, kBoxY + 600);
-    // восстановить подсветку выбора врача
-    for (const QString &s : dSay) {
-        const int idx = s.toInt();
-        if (idx >= 0 && idx < sprites.size()) {
-            sprites[idx].dborder = true;
-        }
-    }
+    restoreDoctorHighlights();
     m_home.resize(sprites.size());
     for (int i = 0; i < sprites.size(); ++i) {
         m_home[i] = QPoint(sprites[i].x, sprites[i].y);
     }
 }
 
+QRect MPicturesEngine::captionDropZone(int picIndex) const {
+    if (picIndex < 0 || picIndex >= sprites.size()) {
+        return {};
+    }
+    QRect zone = sprites[picIndex].rect();
+    // Слот подписи сразу под картинкой (capshow / slot).
+    const int slot = picIndex + 1;
+    if (slot < sprites.size()
+        && (sprites[slot].name == QLatin1String("slot") || sprites[slot].name == QLatin1String("capshow"))) {
+        zone = zone.united(sprites[slot].rect());
+    } else {
+        // Запас: полоса под картинкой той же ширины (подпись ~40 doc → ~57 patient).
+        zone.setHeight(zone.height() + qMax(50, sprites[picIndex].h / 4));
+    }
+    // Небольшой запас по краям, чтобы отпускание «рядом» тоже срабатывало.
+    return zone.adjusted(-12, -8, 12, 20);
+}
+
+void MPicturesEngine::setMatchingCaptionHighlight(const QString &word, bool on) {
+    if (word.isEmpty()) {
+        return;
+    }
+    for (ExSprite &sp : sprites) {
+        if (sp.name == QLatin1String("cap") && sp.word == word) {
+            sp.dborder = on;
+        }
+    }
+}
+
+void MPicturesEngine::restoreDoctorHighlights() {
+    for (ExSprite &sp : sprites) {
+        if (sp.name == QLatin1String("pic") || sp.name == QLatin1String("cap")) {
+            sp.dborder = false;
+        }
+    }
+    for (const QString &s : dSay) {
+        const int idx = s.toInt();
+        if (idx < 0 || idx >= sprites.size() || sprites[idx].name != QLatin1String("pic")) {
+            continue;
+        }
+        sprites[idx].dborder = true;
+        setMatchingCaptionHighlight(sprites[idx].word, true);
+    }
+}
+
+bool MPicturesEngine::captionAtSlot(int capIndex, int picIndex) const {
+    if (capIndex < 0 || capIndex >= sprites.size() || picIndex < 0 || picIndex >= sprites.size()) {
+        return false;
+    }
+    // После snap подпись стоит в (pic.x, pic.y + pic.h); допуск на дробный масштаб.
+    const int ex = sprites[picIndex].x;
+    const int ey = sprites[picIndex].y + sprites[picIndex].h;
+    return qAbs(sprites[capIndex].x - ex) <= 8 && qAbs(sprites[capIndex].y - ey) <= 8;
+}
+
 void MPicturesEngine::pressDone112() {
     const bool show = p1 != QLatin1String("2");
     const int n = m_pics.size();
-    // sprites[i].border == true для картинок или есть ответы в main.ans; иначе done игнорируется
+    const int off = label112Offset();
+
     if (show) {
-        int selected = -1;
+        // 5.2 / 7.3: все выделенные пациентом картинки, а не только первая.
+        QVector<int> selected;
         for (int k = 0; k < n; ++k) {
-            if (sprites[2 * k + (label112Offset())].border) {
-                selected = 2 * k + label112Offset();
-                break; // оригинал проверяет sprites[0], затем [2], [4], [6] и берёт первый
+            const int pi = 2 * k + off;
+            if (sprites[pi].border) {
+                selected.append(pi);
             }
         }
-        if (selected < 0) {
+        if (selected.isEmpty()) {
             return;
         }
-        const bool wrong = !dSay.contains(QString::number(selected));
-        (wrong ? sprites[selected].red : sprites[selected].green) = true;
-        finishDone(wrong);
+
+        QSet<int> targets;
+        for (const QString &s : dSay) {
+            bool ok = false;
+            const int idx = s.toInt(&ok);
+            if (ok && idx >= 0 && idx < sprites.size() && sprites[idx].name == QLatin1String("pic")) {
+                targets.insert(idx);
+            }
+        }
+
+        bool allOk = !targets.isEmpty() && selected.size() == targets.size();
+        if (allOk) {
+            for (int pi : selected) {
+                if (!targets.contains(pi)) {
+                    allOk = false;
+                    break;
+                }
+            }
+        }
+
+        if (allOk) {
+            for (int pi : selected) {
+                sprites[pi].border = false;
+                sprites[pi].dborder = false;
+                sprites[pi].green = true;
+                sprites[pi].red = false;
+            }
+            finishDone(false);
+            return;
+        }
+
+        // Частично / с ошибкой: верные — зелёные без выделения; неверные — красные;
+        // заданные врачом, но не найденные — dborder остаётся.
+        for (int pi : selected) {
+            sprites[pi].border = false;
+            if (targets.contains(pi)) {
+                sprites[pi].green = true;
+                sprites[pi].red = false;
+                sprites[pi].dborder = false;
+            } else {
+                sprites[pi].red = true;
+                sprites[pi].green = false;
+            }
+        }
+        finishDone(true);
         return;
     }
-    // режим 2: main.ans — записи "индекс картинки;1/0" по каждому броску подписи на картинку
-    if (m_ans112.isEmpty()) {
-        return;
-    }
-    bool wrong = false;
-    for (const QPair<int, bool> &a : m_ans112) {
-        if (a.first < 0 || a.first >= sprites.size()) {
+
+    // Режим «подписать» (5.4–5.5 / 7.5–7.6): оценка по фактическому положению подписей.
+    struct Place {
+        int cap = -1;
+        int pic = -1;
+        bool ok = false;
+    };
+    QVector<Place> places;
+    QSet<int> coveredTargets;
+
+    for (int ci = 0; ci < sprites.size(); ++ci) {
+        if (sprites[ci].name != QLatin1String("cap")) {
             continue;
         }
-        (a.second ? sprites[a.first].green : sprites[a.first].red) = true;
-        if (!a.second) {
+        for (int k = 0; k < n; ++k) {
+            const int pi = 2 * k + off;
+            if (!captionAtSlot(ci, pi)) {
+                continue;
+            }
+            Place pl;
+            pl.cap = ci;
+            pl.pic = pi;
+            pl.ok = sprites[pi].word == sprites[ci].word && dSay.contains(QString::number(pi));
+            places.append(pl);
+            if (pl.ok) {
+                coveredTargets.insert(pi);
+            }
+            break;
+        }
+    }
+    if (places.isEmpty()) {
+        return;
+    }
+
+    QSet<int> targets;
+    for (const QString &s : dSay) {
+        bool ok = false;
+        const int idx = s.toInt(&ok);
+        if (ok && idx >= 0 && idx < sprites.size() && sprites[idx].name == QLatin1String("pic")) {
+            targets.insert(idx);
+        }
+    }
+
+    bool wrong = false;
+    for (int t : targets) {
+        if (!coveredTargets.contains(t)) {
+            wrong = true;
+            break;
+        }
+    }
+
+    for (const Place &pl : places) {
+        if (pl.ok) {
+            sprites[pl.cap].green = true;
+            sprites[pl.cap].red = false;
+            sprites[pl.cap].dborder = false;
+            sprites[pl.pic].dborder = false;
+        } else {
+            // Верная подпись под неверной картинкой / лишняя — красным на обоих экранах.
+            sprites[pl.cap].red = true;
+            sprites[pl.cap].green = false;
             wrong = true;
         }
+    }
+
+    // Не размещённые по заданию цели врача: dborder у картинки и подходящей подписи сохраняем.
+    for (int t : targets) {
+        if (!coveredTargets.contains(t)) {
+            sprites[t].dborder = true;
+            setMatchingCaptionHighlight(sprites[t].word, true);
+        }
+    }
+
+    m_ans112.clear();
+    for (const Place &pl : places) {
+        m_ans112.append(qMakePair(pl.pic, pl.ok));
     }
     finishDone(wrong);
 }
@@ -474,16 +633,13 @@ void MPicturesEngine::releaseSeries() {
 void MPicturesEngine::build123() {
     // p1: Запоминание | Устно | С перемещением ; p2: "1" данные, "2" карточки
     if (p2 == QLatin1String("1")) {
-        // Doctor: y = 450 / 510 / 570, текст Arial 40, по центру (setCenter(1920)) внутри pictureBox
+        // 11.1: заголовки «ФИО: », «Адрес: », «Телефон: » в начале строк.
         const QStringList lines = {fio, address, phone};
+        static const char *prefixes[3] = {"ФИО: ", "Адрес: ", "Телефон: "};
         static const int ys[3] = {450, 510, 570};
         for (int k = 0; k < 3; ++k) {
-            const QString line = lines[k].trimmed();
-            if (line.isEmpty()) {
-                continue;
-            }
             const int i = addSprite();
-            sprites[i].setText(line, 40);
+            sprites[i].setText(QString::fromUtf8(prefixes[k]) + lines[k].trimmed(), 40);
             sprites[i].setCenterX(1920);
             sprites[i].x += kBoxX;
             sprites[i].y = kBoxY + ys[k];
@@ -500,6 +656,7 @@ void MPicturesEngine::build123() {
     const int exs[2] = {ex1, ex2};
     const bool moving = p1 == QStringLiteral("С перемещением");
     const bool full = p1 == QStringLiteral("Запоминание");
+    const bool oral = p1 == QStringLiteral("Устно");
     // dFx = 150, dFy = 5, dAx = 5, dAy = 40, dTx = 1, dTy = 70
     const int cardX = moving ? 50 : 200;
     const int cardY[2] = {240, 440};
@@ -514,8 +671,9 @@ void MPicturesEngine::build123() {
         sprites[i].x = kBoxX + cardX + 150;
         sprites[i].y = kBoxY + cardY[c] + 5;
         sprites[i].name = QStringLiteral("fio") + QString::number(c + 1);
-        if (full) {
-            // a: (f.x + 5, f.y + 40); t: (a.x + 1, a.y + 70). В оригинале порядок спрайтов: tm1,f1,a1,t1,tm2,f2,a2,t2
+        // 11.2: «Устно» — карточки у специалиста заполнены.
+        if (full || oral) {
+            // a: (f.x + 5, f.y + 40); t: (a.x + 1, a.y + 70).
             int j = addSprite();
             sprites[j].setImage(ExAssets::exnPath(base + QStringLiteral("a") + QString::number(exs[c]) + QStringLiteral(".png")), 85);
             sprites[j].x = sprites[i].x + 5;
@@ -529,20 +687,7 @@ void MPicturesEngine::build123() {
         }
     }
     if (moving) {
-        // Подписи справа в фиксированных позициях x = 530: adress1, adress2, tel1, tel2 (шаг 90)
-        static const char *kinds[4] = {"a", "a", "t", "t"};
-        static const char *names[4] = {"adress", "adress", "tel", "tel"};
-        static const int which[4] = {0, 1, 0, 1};
-        for (int k = 0; k < 4; ++k) {
-            const int c = which[k];
-            const int i = addSprite();
-            sprites[i].setImage(ExAssets::exnPath(base + QString::fromLatin1(kinds[k]) + QString::number(exs[c]) + QStringLiteral(".png")), 85);
-            sprites[i].x = kBoxX + 530;
-            sprites[i].y = kBoxY + 240 + k * 90;
-            sprites[i].name = QString::fromLatin1(names[k]) + QString::number(c + 1);
-            sprites[i].movable = true;
-        }
-        // «hidden»: правильные адрес и телефон внутри карточек — ключ для врача, у пациента скрыты
+        // 11.3: сначала «hidden» (ключ врача), затем пул — перетаскиваемые рисуются НАД.
         for (int c = 0; c < 2; ++c) {
             const int a = addSprite();
             sprites[a].setImage(ExAssets::exnPath(base + QStringLiteral("a") + QString::number(exs[c]) + QStringLiteral(".png")), 85);
@@ -556,6 +701,23 @@ void MPicturesEngine::build123() {
             sprites[t].y = kBoxY + 240 + 115 + c * 200;
             sprites[t].name = QStringLiteral("hidden");
             sprites[t].doctorOnly = true;
+        }
+        // Подписи справа: adress1, adress2, tel1, tel2
+        static const char *kinds[4] = {"a", "a", "t", "t"};
+        static const char *names[4] = {"adress", "adress", "tel", "tel"};
+        static const int which[4] = {0, 1, 0, 1};
+        for (int k = 0; k < 4; ++k) {
+            const int c = which[k];
+            const int i = addSprite();
+            sprites[i].setImage(ExAssets::exnPath(base + QString::fromLatin1(kinds[k]) + QString::number(exs[c]) + QStringLiteral(".png")), 85);
+            sprites[i].x = kBoxX + 530;
+            sprites[i].y = kBoxY + 240 + k * 90;
+            sprites[i].name = QString::fromLatin1(names[k]) + QString::number(c + 1);
+            sprites[i].movable = true;
+        }
+        m_home.resize(sprites.size());
+        for (int i = 0; i < sprites.size(); ++i) {
+            m_home[i] = QPoint(sprites[i].x, sprites[i].y);
         }
     }
 }
@@ -580,6 +742,12 @@ void MPicturesEngine::patientPress(const QPoint &p) {
         return;
     }
     ExSprite &s = sprites[m_moving];
+    // 9.1: клик по подсказке «Цвета радуги» ни на что не влияет.
+    if (s.name == QLatin1String("rcolors")) {
+        m_moving = -1;
+        m_dragging = false;
+        return;
+    }
     if (s.name == QLatin1String(kDoneName) || selectableOnClick(s)) {
         m_dragging = false;
     }
@@ -605,10 +773,21 @@ void MPicturesEngine::patientRelease(const QPoint &p) {
         emit changed();
         return;
     }
-    // MouseUp: border переключается, если кнопку отпустили над той же картинкой (выделенных может быть несколько)
+    // MouseUp: border переключается, если кнопку отпустили над той же картинкой.
     if (selectableOnClick(sprites[mv])) {
         if (sprites[mv].hit(p.x(), p.y())) {
-            sprites[mv].border = !sprites[mv].border;
+            // 8.1 (беседа): только одна выделенная картинка.
+            if (runtime == QLatin1String("1.1.4")) {
+                const bool was = sprites[mv].border;
+                for (ExSprite &sp : sprites) {
+                    if (sp.name == QLatin1String("pic")) {
+                        sp.border = false;
+                    }
+                }
+                sprites[mv].border = !was;
+            } else {
+                sprites[mv].border = !sprites[mv].border;
+            }
             emit changed();
         }
         return;
@@ -617,21 +796,39 @@ void MPicturesEngine::patientRelease(const QPoint &p) {
         return;
     }
     if (runtime == QLatin1String("1.2.1")) {
-        releaseSeries();
+        if (sprites[mv].name != QLatin1String("rcolors")) {
+            releaseSeries();
+        }
         return;
     }
     if (runtime == QLatin1String("1.1.2") && p1 == QLatin1String("2") && sprites[mv].name == QLatin1String("cap")) {
-        // подпись бросили на картинку: проверяются только прямоугольники картинок (индексы 0,2,4,6)
+        // 5.1 / 7.2: зона drop = картинка + место подписи (и небольшой запас).
         const int off = label112Offset();
         const int n = m_pics.size();
         for (int k = 0; k < n; ++k) {
             const int pi = 2 * k + off;
-            if (!sprites[pi].hit(p.x(), p.y())) {
+            if (!captionDropZone(pi).contains(p)) {
                 continue;
+            }
+            // Если на этом слоте уже лежит другая подпись — вернуть её домой.
+            for (int j = 0; j < sprites.size(); ++j) {
+                if (j == mv || sprites[j].name != QLatin1String("cap")) {
+                    continue;
+                }
+                if (captionAtSlot(j, pi) && j < m_home.size()) {
+                    sprites[j].x = m_home[j].x();
+                    sprites[j].y = m_home[j].y();
+                }
             }
             sprites[mv].x = sprites[pi].x;
             sprites[mv].y = sprites[pi].y + sprites[pi].h;
             const bool ok = sprites[pi].word == sprites[mv].word && dSay.contains(QString::number(pi));
+            // Одна запись на картинку (последний бросок).
+            for (int a = m_ans112.size() - 1; a >= 0; --a) {
+                if (m_ans112[a].first == pi) {
+                    m_ans112.removeAt(a);
+                }
+            }
             m_ans112.append(qMakePair(pi, ok));
             break;
         }
@@ -639,6 +836,8 @@ void MPicturesEngine::patientRelease(const QPoint &p) {
         return;
     }
     if (runtime == QLatin1String("1.2.3") && sprites[mv].movable) {
+        // 11.4: верно — встать в поле + correct; неверно — домой + incorrect.
+        bool correct = false;
         for (int c = 1; c <= 2; ++c) {
             const int ci = indexByName(QStringLiteral("card") + QString::number(c));
             if (ci < 0 || !sprites[ci].hit(p.x(), p.y())) {
@@ -647,11 +846,22 @@ void MPicturesEngine::patientRelease(const QPoint &p) {
             if (sprites[mv].name == QStringLiteral("tel") + QString::number(c)) {
                 sprites[mv].x = sprites[ci].x + 150;
                 sprites[mv].y = sprites[ci].y + 114;
-            }
-            if (sprites[mv].name == QStringLiteral("adress") + QString::number(c)) {
+                correct = true;
+            } else if (sprites[mv].name == QStringLiteral("adress") + QString::number(c)) {
                 sprites[mv].x = sprites[ci].x + 150;
                 sprites[mv].y = sprites[ci].y + 45;
+                correct = true;
             }
+            break;
+        }
+        if (correct) {
+            ExAssets::playCorrect();
+        } else {
+            if (mv >= 0 && mv < m_home.size()) {
+                sprites[mv].x = m_home[mv].x();
+                sprites[mv].y = m_home[mv].y();
+            }
+            ExAssets::playIncorrect();
         }
         emit changed();
     }
@@ -663,11 +873,19 @@ void MPicturesEngine::doctorClick(const QPoint &p) {
         return;
     }
     if (runtime == QLatin1String("1.2.1")) {
-        // doctorMouseUp d1.2.1: щелчок по элементу ряда (row*, rcolors; у нас предзаполненные — fix*) переключает
-        // синюю рамку, её видит и пациент
+        // 9.1: по rcolors клик запрещён. 9.2: у специалиста только одна подсказка-картинка.
         const QString &n = sprites[i].name;
-        if (n.startsWith(QLatin1String("row")) || n.startsWith(QLatin1String("fix")) || n == QLatin1String("rcolors")) {
-            sprites[i].border = !sprites[i].border;
+        if (n == QLatin1String("rcolors")) {
+            return;
+        }
+        if (n.startsWith(QLatin1String("row")) || n.startsWith(QLatin1String("fix"))) {
+            const bool was = sprites[i].border;
+            for (ExSprite &sp : sprites) {
+                if (sp.name.startsWith(QLatin1String("row")) || sp.name.startsWith(QLatin1String("fix"))) {
+                    sp.border = false;
+                }
+            }
+            sprites[i].border = !was;
             emit changed();
         }
         return;
@@ -678,12 +896,16 @@ void MPicturesEngine::doctorClick(const QPoint &p) {
     }
     // addSayIfEmpty / removeSayIfYes: выбор переключается по каждой картинке (допускается несколько)
     const QString key = QString::number(i);
+    const QString word = sprites[i].word;
     if (dSay.contains(key)) {
         dSay.removeAll(key);
         sprites[i].dborder = false;
+        // 5.3 / 7.4: снять выделение и с подходящей подписи.
+        setMatchingCaptionHighlight(word, false);
     } else {
         dSay.append(key);
         sprites[i].dborder = true;
+        setMatchingCaptionHighlight(word, true);
     }
     emit changed();
 }

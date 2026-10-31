@@ -115,11 +115,13 @@ void PatientWindow::layoutRtf() {
 }
 
 void PatientWindow::layoutContent() {
-    // Встроенный режим: над экраном пациента и так шапка основного окна.
-    const int headerH = m_single ? 0 : qRound(kHeaderHeight * width() / 1920.0);
-    m_header->setVisible(!m_single);
-    m_header->setGeometry(0, 0, width(), headerH);
-    m_content->setGeometry(0, headerH, width(), qMax(0, height() - headerH));
+    // 5.7 / 7.8: на экране пациента шапка не показывается в процессе выполнения
+    // (ни на втором мониторе, ни во встроенном режиме — там и так шапка основного окна).
+    if (m_header) {
+        m_header->hide();
+        m_header->setGeometry(0, 0, width(), 0);
+    }
+    m_content->setGeometry(0, 0, width(), height());
     m_canvas->setGeometry(0, 0, m_content->width(), m_content->height());
     layoutRtf();
 }

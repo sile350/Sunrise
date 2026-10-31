@@ -46,6 +46,12 @@ private:
     void resetDoneState();
     int label112Offset() const;
     bool selectableOnClick(const ExSprite &s) const;
+    // Зона «картинка + место подписи» для drop (5.1 / 7.2).
+    QRect captionDropZone(int picIndex) const;
+    // Подсветка подходящей подписи при выборе картинки врачом (5.3 / 7.4).
+    void setMatchingCaptionHighlight(const QString &word, bool on);
+    void restoreDoctorHighlights();
+    bool captionAtSlot(int capIndex, int picIndex) const;
 
     struct SeriesInfo {
         QString dir;
