@@ -219,7 +219,7 @@ int ExEngine::topAt(const QPoint &p, bool patientView) const {
         if (!patientView && s.patientOnly) {
             continue;
         }
-        if (s.hit(p.x(), p.y())) {
+        if (s.hit(p.x(), p.y(), patientView)) {
             found = i;
         }
     }
@@ -237,8 +237,8 @@ void ExEngine::patientPress(const QPoint &p) {
         return;
     }
     m_moving = i;
-    m_off = QPoint(p.x() - sprites[i].x, p.y() - sprites[i].y);
-    m_start = QPoint(sprites[i].x, sprites[i].y);
+    m_off = QPoint(p.x() - sprites[i].x, p.y() - sprites[i].viewY(true));
+    m_start = QPoint(sprites[i].x, sprites[i].viewY(true));
     m_dragging = true;
 }
 
@@ -251,7 +251,14 @@ void ExEngine::patientMove(const QPoint &p) {
         return;
     }
     s.x = p.x() - m_off.x();
-    s.y = p.y() - m_off.y();
+    const int ny = p.y() - m_off.y();
+    if (s.patientY >= 0) {
+        const int dy = s.patientY - s.y;
+        s.patientY = ny;
+        s.y = ny - dy;
+    } else {
+        s.y = ny;
+    }
     emit changed();
 }
 
@@ -364,10 +371,11 @@ void ExCanvas::paintEvent(QPaintEvent *) {
             continue;
         }
         const QPixmap &pm = (!m_patient && !sp.doctorPix.isNull()) ? sp.doctorPix : sp.pix;
+        const int drawY = sp.viewY(m_patient);
         if (!pm.isNull()) {
-            p.drawPixmap(sp.x, sp.y, pm);
+            p.drawPixmap(sp.x, drawY, pm);
         }
-        const QRect r(sp.x, sp.y, sp.w, sp.h);
+        const QRect r(sp.x, drawY, sp.w, sp.h);
         if (sp.green) {
             p.fillRect(r, QColor(51, 204, 0, 125));
         }

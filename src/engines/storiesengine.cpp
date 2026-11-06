@@ -79,11 +79,14 @@ void StoriesEngine::rebuild() {
     };
     add(renderText(title, 1000, 20, false, false), renderText(title, 1000, 24, false, false), 297, 53,
         QStringLiteral("zag"));
-    add(renderText(body, 800, 18, false, false), renderText(body, 900, 22, false, false), 0, 104,
-        QStringLiteral("text"));
+    const QPixmap bodyP = renderText(body, 800, 18, false, false);
+    const QPixmap bodyD = renderText(body, 900, 22, false, false);
+    add(bodyP, bodyD, 0, 104, QStringLiteral("text"));
+    // 17.1: вопросы ниже текста рассказа (с учётом более крупного шрифта у специалиста).
+    const int qTop = 104 + qMax(bodyP.height(), bodyD.height()) + 48;
     add(renderText(QStringLiteral("Вопросы:"), 300, 16, true, false),
-        renderText(QStringLiteral("Вопросы:"), 300, 20, true, false), 12, 424, QStringLiteral("label2"));
+        renderText(QStringLiteral("Вопросы:"), 300, 20, true, false), 12, qTop, QStringLiteral("label2"));
     add(renderText(questions, 600, 18, false, false), renderText(questions, 700, 22, false, false), 150,
-        104 + 280 + 15, QStringLiteral("questions"));
+        qTop + 36, QStringLiteral("questions"));
     emit changed();
 }

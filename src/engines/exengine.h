@@ -43,12 +43,19 @@ struct ExSprite {
     bool doctorOnly = false;   // видно только врачу (otv, hint)
     bool patientOnly = false;
     bool isText = false;
+    int patientY = -1;         // если >= 0 — Y на экране пациента (врач по-прежнему использует y)
     QPixmap pix;
     QPixmap doctorPix;         // если задана — врач видит её вместо pix (у пациента в оригинале своя картинка)
 
+    int viewY(bool patientView) const { return (patientView && patientY >= 0) ? patientY : y; }
     QRect rect() const { return QRect(x, y, w, h); }
+    QRect rectFor(bool patientView) const { return QRect(x, viewY(patientView), w, h); }
     bool hit(int px, int py) const {
         return visible && px > x && px < x + w && py > y && py < y + h;
+    }
+    bool hit(int px, int py, bool patientView) const {
+        const int yy = viewY(patientView);
+        return visible && px > x && px < x + w && py > yy && py < yy + h;
     }
     void setImage(const QString &file, int scalePercent = 100);
     void setText(const QString &text, int fontSize = 26, const QColor &c = Qt::black, int scalePercent = 100,
