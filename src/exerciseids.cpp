@@ -49,6 +49,38 @@ const Row kRows[] = {
     {"3.2.6", "3.2.4", "3.2.4", "3.2.4", ExCoverKind::C324, ExEngineKind::Movewords, 1, "Вставить пропущенные буквы"},
     // 3.2.7 -> 2.2.7 -> 2.2.6
     {"3.2.7", "2.2.6", "2.2.6", "2.2.6", ExCoverKind::C226, ExEngineKind::Movewords, 1, "Составление рассказа"},
+    // --- 4. Афферентно-моторная афазия (алиасы + уникальные) ---
+    {"4.1.1", "1.2.2", "1.2.2", "1.2.2", ExCoverKind::C122, ExEngineKind::Movewords, 1, "Стойкие речевые ряды"},
+    {"4.1.2", "1.2.1", "1.2.1", "1.2.1", ExCoverKind::C121, ExEngineKind::Mpictures, 1, "Автоматизированные ряды"},
+    {"4.1.3", "1.1.4", "1.1.4", "1.1.4", ExCoverKind::C114, ExEngineKind::Mpictures, 1, "Проведение беседы (ситуативные вопросы)"},
+    {"4.2.1", "1.2.2", "1.2.2", "1.2.2", ExCoverKind::C122, ExEngineKind::Movewords, 1, "Стойкие речевые ряды"},
+    {"4.3.1", "1.2.3", "1.2.3", "1.2.3", ExCoverKind::C123, ExEngineKind::Mpictures, 1, "ФИО, адрес, телефон (свои и вымышленных героев)"},
+    {"4.3.2", "1.1.4", "1.1.4", "1.1.4", ExCoverKind::C114, ExEngineKind::Mpictures, 1, "Проведение беседы (ситуативные вопросы)"},
+    // 4.3.3 → 3.2.6 (каскад L705)
+    {"4.3.3", "3.2.4", "3.2.4", "3.2.4", ExCoverKind::C324, ExEngineKind::Movewords, 1, "Вставить пропущенные буквы"},
+    // 4.3.4 → 3.2.2 (каскад L750) — слоги dataNumber=2
+    {"4.3.4", "3.1.2", "3.1.2", "3.2.2", ExCoverKind::C312, ExEngineKind::Movewords, 2, "Составление слов из слогов"},
+    // 4.3.5 → 3.1.2 (каскад L748)
+    {"4.3.5", "3.1.2", "3.1.2", "3.1.2", ExCoverKind::C312, ExEngineKind::Movewords, 1, "Составление слов из отдельных букв с возможностью опоры на первый слог"},
+    {"4.3.6", "4.3.6", "4.3.6", "4.3.6", ExCoverKind::C436, ExEngineKind::Cross, 1, "Кроссворды"},
+    // 4.3.7 → 2.2.2 (каскад L758)
+    {"4.3.7", "2.2.2", "2.2.2", "2.2.2", ExCoverKind::C222, ExEngineKind::Stories, 1, "Пересказ рассказа и ответы на вопросы"},
+    // 4.3.8 → 2.2.7 (каскад L692)
+    {"4.3.8", "2.2.6", "2.2.6", "2.2.6", ExCoverKind::C226, ExEngineKind::Movewords, 1, "Составление рассказа"},
+    // --- 5. Акустико-гностическая афазия ---
+    {"5.1.1", "1.1.1", "1.1.1", "1.1.1", ExCoverKind::C1, ExEngineKind::None, 1, "Выполнение речевых инструкций"},
+    {"5.1.2", "1.1.2", "1.1.2", "1.1.2", ExCoverKind::C112, ExEngineKind::Mpictures, 1, "Покажи / подпиши сюжетные картинки"},
+    {"5.1.3", "1.1.2", "1.1.3", "1.1.3", ExCoverKind::C112, ExEngineKind::Mpictures, 1, "Покажи / подпиши предметные картинки"},
+    {"5.1.4", "5.1.4", "5.1.4", "5.1.4", ExCoverKind::C514, ExEngineKind::ManBody, 1, "Разбор схемы тела на картинке с переносом на себя"},
+    {"5.1.5", "5.1.5", "5.1.5", "5.1.5", ExCoverKind::C515, ExEngineKind::Movewords, 1, "Определение предметов по их функциям"},
+    {"5.1.6", "1.1.4", "1.1.4", "1.1.4", ExCoverKind::C114, ExEngineKind::Mpictures, 1, "Проведение беседы (ситуативные вопросы)"},
+    {"5.2.1", "5.2.1", "5.2.1", "5.2.1", ExCoverKind::C521, ExEngineKind::Movewords, 1, "Словосочетания с опорой на картинку"},
+    {"5.2.2", "5.2.2", "5.2.2", "5.2.2", ExCoverKind::C522, ExEngineKind::Movewords, 1, "Выбирать слова с оппозиционными фонемами"},
+    {"5.2.3", "5.2.3", "5.2.3", "5.2.3", ExCoverKind::C523, ExEngineKind::None, 1, "Подбирать определения к словам с целью расширения семантики слова"},
+    // 5.2.4 → 3.2.5 (каскад L764)
+    {"5.2.4", "3.2.3", "3.2.3", "3.2.3", ExCoverKind::C323, ExEngineKind::Movewords, 1, "Синонимы/антонимы"},
+    // 5.2.5 → 4.3.6 (каскад L720)
+    {"5.2.5", "4.3.6", "4.3.6", "4.3.6", ExCoverKind::C436, ExEngineKind::Cross, 1, "Кроссворды"},
 };
 
 // pagemanager.cs: ename, если он отличается от id пункта меню (срабатывает последнее совпадение).
@@ -63,6 +95,48 @@ QString pagemanagerEname(const QString &menuId) {
         return QStringLiteral("3.1.2");
     }
     if (menuId == QLatin1String("3.2.7")) {
+        return QStringLiteral("2.2.7");
+    }
+    if (menuId == QLatin1String("4.1.1") || menuId == QLatin1String("4.2.1")) {
+        return QStringLiteral("1.2.2");
+    }
+    if (menuId == QLatin1String("4.1.2")) {
+        return QStringLiteral("1.2.1");
+    }
+    if (menuId == QLatin1String("4.1.3") || menuId == QLatin1String("4.3.2") || menuId == QLatin1String("5.1.6")) {
+        return QStringLiteral("1.1.4");
+    }
+    if (menuId == QLatin1String("4.3.1")) {
+        return QStringLiteral("1.2.3");
+    }
+    if (menuId == QLatin1String("4.3.3")) {
+        return QStringLiteral("3.2.6");
+    }
+    if (menuId == QLatin1String("4.3.4")) {
+        return QStringLiteral("3.2.2");
+    }
+    if (menuId == QLatin1String("4.3.5")) {
+        return QStringLiteral("3.1.2");
+    }
+    if (menuId == QLatin1String("5.2.5")) {
+        return QStringLiteral("4.3.6");
+    }
+    if (menuId == QLatin1String("5.2.4")) {
+        return QStringLiteral("3.2.5");
+    }
+    if (menuId == QLatin1String("5.1.1")) {
+        return QStringLiteral("1.1.1");
+    }
+    if (menuId == QLatin1String("5.1.2")) {
+        return QStringLiteral("1.1.2");
+    }
+    if (menuId == QLatin1String("5.1.3")) {
+        return QStringLiteral("1.1.3");
+    }
+    if (menuId == QLatin1String("4.3.7")) {
+        return QStringLiteral("2.2.2");
+    }
+    if (menuId == QLatin1String("4.3.8")) {
         return QStringLiteral("2.2.7");
     }
     return menuId;

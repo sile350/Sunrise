@@ -27,6 +27,7 @@ void playMetronome(bool start, int bpm);
 // Спрайт сцены пациента (1920x1080). Карта pclassSel из оригинала.
 struct ExSprite {
     QString name;
+    QString name2; // второй ключ оригинала (pclassSel.name2): метка клетки, часть тела
     QString word;
     QString path;
     int x = 0;
@@ -44,6 +45,7 @@ struct ExSprite {
     bool patientOnly = false;
     bool isText = false;
     int patientY = -1;         // если >= 0 — Y на экране пациента (врач по-прежнему использует y)
+    QColor tint = QColor(0, 0, 0, 0); // заливка поверх картинки (selectColorable), alpha 0 — нет
     QPixmap pix;
     QPixmap doctorPix;         // если задана — врач видит её вместо pix (у пациента в оригинале своя картинка)
 
@@ -59,9 +61,10 @@ struct ExSprite {
     }
     void setImage(const QString &file, int scalePercent = 100);
     void setText(const QString &text, int fontSize = 26, const QColor &c = Qt::black, int scalePercent = 100,
-                 bool italic = false, int extraPadX = 0);
+                 bool italic = false, int extraPadX = 0, bool bold = false);
     // Многострочная метка с рамкой (Label BorderStyle=FixedSingle, AutoSize=false).
-    void setBox(const QString &text, int width, int height, int pointSize, bool bordered = true, bool bold = false);
+    void setBox(const QString &text, int width, int height, int pointSize, bool bordered = true, bool bold = false,
+                bool italic = false);
     void setCenterX(int totalWidth) { x = (totalWidth - w) / 2; }
 };
 
@@ -78,6 +81,7 @@ public:
     int addSprite();
     ExSprite &last() { return sprites.last(); }
     int indexByName(const QString &name) const;
+    int indexByName2(const QString &name2) const;
     int topAt(const QPoint &p, bool patientView) const;
     void clear() { sprites.clear(); m_moving = -1; }
 
@@ -85,8 +89,9 @@ public:
     virtual void patientPress(const QPoint &p);
     virtual void patientMove(const QPoint &p);
     virtual void patientRelease(const QPoint &p);
-    // Клик врача по зеркалу (координаты сцены).
+    // Клик врача по зеркалу (координаты сцены). Правая кнопка — doctorClick(p, button).
     virtual void doctorClick(const QPoint &p);
+    virtual void doctorClick(const QPoint &p, Qt::MouseButton button);
 
     // Результат кнопки done: спрайт done превращается в correct/incorrect.
     void finishDone(bool wrong);

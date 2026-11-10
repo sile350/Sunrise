@@ -140,9 +140,21 @@
 			null
 		],
 		[
+			"D:/projects/DokitLab/sunrise/src/engines/crossengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_crossengine.cpp",
+			null
+		],
+		[
 			"D:/projects/DokitLab/sunrise/src/engines/exengine.h",
 			"MU",
 			"3EB3WRZEB7/moc_exengine.cpp",
+			null
+		],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/manbodyengine.h",
+			"MU",
+			"3EB3WRZEB7/moc_manbodyengine.cpp",
 			null
 		],
 		[
@@ -371,7 +383,17 @@
 		],
 		[ "D:/projects/DokitLab/sunrise/src/coverpanel.cpp", "MU", null ],
 		[ "D:/projects/DokitLab/sunrise/src/custommessagebox.cpp", "MU", null ],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/crossengine.cpp",
+			"MU",
+			null
+		],
 		[ "D:/projects/DokitLab/sunrise/src/engines/exengine.cpp", "MU", null ],
+		[
+			"D:/projects/DokitLab/sunrise/src/engines/manbodyengine.cpp",
+			"MU",
+			null
+		],
 		[
 			"D:/projects/DokitLab/sunrise/src/engines/movewordsengine.cpp",
 			"MU",

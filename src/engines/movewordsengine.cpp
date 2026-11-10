@@ -2,6 +2,7 @@
 
 #include <QFont>
 #include <QFontMetrics>
+#include <QMessageBox>
 #include <QRandomGenerator>
 #include <algorithm>
 
@@ -150,6 +151,15 @@ QStringList MovewordsEngine::wordList() const {
 }
 
 int MovewordsEngine::recordCount() const {
+    // 5.1.5: currentEx 1..64 (обложка стартует с 22; next при 65 возвращает 1). 65 и 66 не показываются.
+    if (runtime == QLatin1String("5.1.5")) {
+        return 64;
+    }
+    if (runtime == QLatin1String("5.2.2") && p1 == QLatin1String("2")) {
+        QStringList lines = ExAssets::readLines(dataPath(QStringLiteral("data2.txt")));
+        lines.removeAll(QString());
+        return lines.size();
+    }
     return wordList().size();
 }
 
@@ -157,6 +167,8 @@ void MovewordsEngine::rebuild(bool resetState) {
     clear();
     block = false;
     m_mem = -1;
+    m_mem2 = -1;
+    m_answer.clear();
     m_home.clear();
     doctorHint.clear();
     taskText.clear();
@@ -165,7 +177,8 @@ void MovewordsEngine::rebuild(bool resetState) {
     for (int &v : m_slotLetter) {
         v = -1;
     }
-    background = QColor(249, 249, 249);
+    // uprSpace 5.1.5: BackColor 245; остальные движки — 249
+    background = (runtime == QLatin1String("5.1.5")) ? QColor(245, 245, 245) : QColor(249, 249, 249);
     m_hostApplied = false;
     m_lineMax = 0;
     m_sortLeft = 0;
@@ -180,13 +193,19 @@ void MovewordsEngine::rebuild(bool resetState) {
     static const HostOff offs[] = {
         {"1.2.2", 430, 100, 21}, {"2.1.1", 210, 90, 21}, {"2.1.2", 470, 100, 21}, {"2.1.3", 100, 110, 21},
         {"2.1.4", 300, 500, 21}, {"2.2.3", 215, -30, 21}, {"2.2.4", 250, 0, 21}, {"2.2.6", 0, -70, 0},
-        {"3.1.1", 500, 100, 0},  {"3.1.2", 300, 150, 0},  {"3.2.3", 300, 100, 0}, {"3.2.4", 380, 200, 0}};
+        {"3.1.1", 500, 100, 0},  {"3.1.2", 300, 150, 0},  {"3.2.3", 300, 100, 0}, {"3.2.4", 380, 200, 0},
+        {"5.1.5", 0, 0, 0}, {"5.2.1", 0, 0, 0}};
     m_hx = 3;
     m_hy = 21;
     if (runtime == QLatin1String("2.2.5")) {
         const bool graphic = p1 == QStringLiteral("Графические задания");
         m_hx += 0;
         m_hy = (graphic ? 0 : 200) + 21;
+    } else if (runtime == QLatin1String("5.2.2")) {
+        // uprSpace: p1 "1" Top=100, pictureBox Left=3 Top=0; p1 "2" Top=-100, pictureBox Left=0 Top=0.
+        const bool mode2 = p1 == QLatin1String("2");
+        m_hx = mode2 ? 0 : 3;
+        m_hy = mode2 ? -100 : 100;
     } else {
         for (const HostOff &o : offs) {
             if (runtime == QLatin1String(o.rt)) {
@@ -208,6 +227,9 @@ void MovewordsEngine::rebuild(bool resetState) {
     else if (runtime == QLatin1String("3.1.2")) build312();
     else if (runtime == QLatin1String("3.2.3")) build323();
     else if (runtime == QLatin1String("3.2.4")) build324();
+    else if (runtime == QLatin1String("5.1.5")) build515();
+    else if (runtime == QLatin1String("5.2.1")) build521();
+    else if (runtime == QLatin1String("5.2.2")) build522();
     applyHost();
     addAbsolute();
     snapshotHome();
@@ -845,6 +867,147 @@ void MovewordsEngine::build324() {
     doctorHint = p0[1].left(1) + QLatin1Char(' ') + p1l[1].left(1) + QLatin1Char(' ') + p2l[1].left(1);
 }
 
+// data.txt: записи через ';', файл начинается с \r\n, поэтому вопросы — строки 1..3.
+// rez = currentEx/22 выбирает вопрос; картинки всегда из трёх строк. Пациент: координаты врача *2, картинки 100%.
+void MovewordsEngine::build515() {
+    const QString text = ExAssets::readAll(dataPath(QStringLiteral("data.txt")));
+    if (text.isEmpty() || currentEx < 1) {
+        return;
+    }
+    const QStringList records = text.split(QLatin1Char(';'));
+    const int n = records.size();
+    if (n <= 0) {
+        return;
+    }
+    const double rez = double(currentEx) / double(n);
+    int realEx = 0;
+    int qLine = 0;
+    if (rez <= 1.0) {
+        realEx = currentEx - 1;
+        qLine = 1;
+    } else if (rez <= 2.0) {
+        realEx = currentEx - n - 1;
+        qLine = 2;
+    } else if (rez <= 3.0) {
+        realEx = currentEx - n * 2 - 1;
+        qLine = 3;
+    } else {
+        return;
+    }
+    if (realEx < 0 || realEx >= n) {
+        return;
+    }
+    const QString nl = text.contains(QStringLiteral("\r\n")) ? QStringLiteral("\r\n") : QStringLiteral("\n");
+    const QStringList lines = records[realEx].split(nl);
+    auto splitQ = [](const QString &line) -> QStringList {
+        const int q = line.indexOf(QLatin1Char('?'));
+        if (q < 0) {
+            return {line, QString()};
+        }
+        return {line.left(q) + QStringLiteral("?"), line.mid(q + 1)};
+    };
+    if (qLine < lines.size()) {
+        const QStringList qa = splitQ(lines[qLine]);
+        m_answer = qa.value(1);
+        // Врач: (370,100); пациент: центр 1920, y*2 (как requestData *100/50 + setCenter)
+        const int qd = addText(qa.value(0), 370, 100, 26, Qt::black, QStringLiteral("questD"));
+        sprites[qd].doctorOnly = true;
+        const int qp = addText(qa.value(0), 0, 100 * 2, 26, Qt::black, QStringLiteral("quest"));
+        sprites[qp].setCenterX(1920);
+        sprites[qp].patientOnly = true;
+        Q_UNUSED(qd);
+    }
+    const int px[3] = {170, 490, 310};
+    const int py[3] = {150, 150, 350};
+    for (int k = 0; k < 3; ++k) {
+        if (k + 1 >= lines.size()) {
+            break;
+        }
+        const QStringList qa = splitQ(lines[k + 1]);
+        if (qa.value(1).isEmpty()) {
+            continue;
+        }
+        // Врач: scale 50 на (170/490/310, 150/350); пациент: *2 и 100%
+        const int id = addImage(dataPath(qa.value(1) + QStringLiteral(".png")), px[k], py[k], qa.value(1) + QStringLiteral("D"), 50);
+        sprites[id].doctorOnly = true;
+        if (qa.value(1).compare(m_answer, Qt::CaseInsensitive) == 0) {
+            sprites[id].dborder = true;
+        }
+        const int i = addImage(dataPath(qa.value(1) + QStringLiteral(".png")), px[k] * 2, py[k] * 2, qa.value(1));
+        sprites[i].patientOnly = true;
+    }
+    addDoneButton(1590, 750);
+}
+
+// data.txt: фраза;вар1, вар2, вар3;N. Врач smaller=60, пациент *100/60 и шрифт/картинка 100%.
+void MovewordsEngine::build521() {
+    const QStringList list = wordList();
+    if (currentEx < 1 || currentEx > list.size()) {
+        return;
+    }
+    const QStringList t = list[currentEx - 1].split(QLatin1Char(';'));
+    if (t.size() < 3) {
+        return;
+    }
+    const QStringList vars = t[1].split(QLatin1Char(','));
+    if (vars.size() < 3) {
+        return;
+    }
+    m_answer = t[2];
+    const int line = addImage(dataPath(QStringLiteral("line.png")), 0, 140 * 100 / 60, QStringLiteral("line"));
+    centerDoc(line, 60, 900);
+    addText(t[0], 290 * 100 / 60, 145 * 100 / 60, 30, Qt::black, QStringLiteral("quest"));
+    int x = 280 * 100 / 60;
+    const int y = 210 * 100 / 60;
+    const int gap = 20 * 100 / 60;
+    for (int k = 0; k < 3; ++k) {
+        const int i = addText(vars[k], x, y, 30, Qt::black, QStringLiteral("var%1").arg(k + 1));
+        x += sprites[i].w + gap;
+    }
+    addImage(dataPath(QString::number(currentEx) + QStringLiteral(".png")), 280 * 100 / 60, 350 * 100 / 60);
+    addDoneButton(1580, 750);
+}
+
+void MovewordsEngine::build522() {
+    if (p1 == QLatin1String("2")) {
+        const QStringList list = ExAssets::readLines(dataPath(QStringLiteral("data2.txt")));
+        if (currentEx < 1 || currentEx > list.size()) {
+            return;
+        }
+        const QStringList t = list[currentEx - 1].split(QLatin1Char(';'));
+        if (t.size() < 2) {
+            return;
+        }
+        // Врач smaller=50, пациент *2 и картинки 100% — слот сразу под картинкой.
+        const int left = addImage(dataPath(t[0] + QStringLiteral(".png")), 50 * 2, 200 * 2, QStringLiteral("p") + t[0]);
+        addImage(dataPath(QStringLiteral("void.png")), 50 * 2, sprites[left].y + sprites[left].h,
+                 QStringLiteral("void") + t[0]);
+        const int right = addImage(dataPath(t[1] + QStringLiteral(".png")), 550 * 2, 200 * 2, QStringLiteral("p") + t[1]);
+        addImage(dataPath(QStringLiteral("void.png")), 550 * 2, sprites[right].y + sprites[right].h,
+                 QStringLiteral("void") + t[1]);
+        addText(t[0], 390 * 2, 250 * 2, 30, Qt::black, t[0], true);
+        addText(t[1], 390 * 2, 350 * 2, 30, Qt::black, t[1], true);
+        addDoneButton(1550, 850);
+        return;
+    }
+    const QStringList list = wordList();
+    if (currentEx < 1 || currentEx > list.size()) {
+        return;
+    }
+    const QStringList t = list[currentEx - 1].split(QLatin1Char(';'));
+    if (t.size() < 5) {
+        return;
+    }
+    m_answer = t[4];
+    addImage(dataPath(QStringLiteral("line.png")), 150 * 100 / 60, 90 * 100 / 60, QStringLiteral("line1"));
+    addImage(dataPath(QStringLiteral("line.png")), 150 * 100 / 60, 190 * 100 / 60, QStringLiteral("line2"));
+    addText(t[0], 150 * 100 / 60, 130 * 100 / 60, 30, Qt::black, QStringLiteral("quest1"));
+    addText(t[1], 150 * 100 / 60, 220 * 100 / 60, 30, Qt::black, QStringLiteral("quest2"));
+    const int v1 = addText(t[2], 400 * 100 / 60, 300 * 100 / 60, 30, Qt::black, QStringLiteral("var1"), true);
+    addText(t[3], sprites[v1].x + sprites[v1].w + 100 * 100 / 60, 300 * 100 / 60, 30, Qt::black, QStringLiteral("var2"), true);
+    addDoneButton(1580, 650);
+}
+
 // ---------------- ввод пациента ----------------
 
 void MovewordsEngine::toggleExclusive(int idx, const QStringList &names) {
@@ -977,6 +1140,80 @@ void MovewordsEngine::pressDone() {
                 wrong = true;
             }
         }
+        finishDone(wrong);
+    } else if (runtime == QLatin1String("5.1.5")) {
+        if (m_mem < 0 || m_mem >= sprites.size()) {
+            return;
+        }
+        sprites[m_mem].border = false;
+        const bool ok = sprites[m_mem].name.compare(m_answer, Qt::CaseInsensitive) == 0;
+        (ok ? sprites[m_mem].green : sprites[m_mem].red) = true;
+        finishDone(!ok);
+    } else if (runtime == QLatin1String("5.2.1")) {
+        if (m_mem < 0 || m_mem >= sprites.size() || sprites[m_mem].name.size() < 4) {
+            return;
+        }
+        const bool ok = sprites[m_mem].name.mid(3, 1) == m_answer;
+        const int line = indexByName(QStringLiteral("line"));
+        if (line >= 0) {
+            (ok ? sprites[line].green : sprites[line].red) = true;
+        }
+        if (!ok) {
+            const int cor = indexByName(QStringLiteral("var") + m_answer);
+            if (cor >= 0) {
+                sprites[cor].green = true;
+            }
+        }
+        finishDone(!ok);
+    } else if (runtime == QLatin1String("5.2.2") && p1 == QLatin1String("2")) {
+        if (m_mem < 0 || m_mem2 < 0 || m_mem >= sprites.size() || m_mem2 >= sprites.size()) {
+            return;
+        }
+        int index1 = -1;
+        int index2 = -1;
+        for (int i = 0; i < sprites.size(); ++i) {
+            if (sprites[i].name.isEmpty() || sprites[i].name[0] != QLatin1Char('v')) {
+                continue;
+            }
+            if (index1 < 0) {
+                index1 = i;
+            } else if (index2 < 0) {
+                index2 = i;
+            }
+        }
+        if (index1 < 0 || index2 < 0) {
+            return;
+        }
+        auto tail = [](const QString &name) { return name.mid(4); };
+        bool wrong = false;
+        auto paint = [&](bool ok) {
+            sprites[m_mem].green = sprites[m_mem2].green = ok;
+            sprites[m_mem].red = sprites[m_mem2].red = !ok;
+            wrong = !ok;
+        };
+        if (sprites[index1].x == sprites[m_mem].x) {
+            paint(tail(sprites[index1].name) == sprites[m_mem].name && tail(sprites[index2].name) == sprites[m_mem2].name);
+        }
+        if (sprites[index1].x == sprites[m_mem2].x) {
+            paint(tail(sprites[index1].name) == sprites[m_mem2].name && tail(sprites[index2].name) == sprites[m_mem].name);
+        }
+        finishDone(wrong);
+    } else if (runtime == QLatin1String("5.2.2")) {
+        if (m_mem < 0 || m_mem2 < 0 || m_mem >= sprites.size() || m_mem2 >= sprites.size()) {
+            QMessageBox::information(nullptr, QString(), QStringLiteral("Разместите все слова на места"));
+            return;
+        }
+        bool wrong = true;
+        const QString n1 = sprites[m_mem].name;
+        const QString n2 = sprites[m_mem2].name;
+        if (n1 == QLatin1String("var1") && m_answer != QLatin1String("r") && n2 == QLatin1String("var2")) {
+            wrong = false;
+        }
+        if (n1 == QLatin1String("var2") && m_answer == QLatin1String("r") && n2 == QLatin1String("var1")) {
+            wrong = false;
+        }
+        sprites[m_mem].green = sprites[m_mem2].green = !wrong;
+        sprites[m_mem].red = sprites[m_mem2].red = wrong;
         finishDone(wrong);
     }
 }
@@ -1255,6 +1492,107 @@ void MovewordsEngine::patientRelease(const QPoint &p) {
             restoreHome(mv);
         }
         layout324();
+    } else if (runtime == QLatin1String("5.1.5")) {
+        for (ExSprite &sp : sprites) {
+            sp.border = false;
+        }
+        sprites[mv].border = true;
+        m_mem = mv;
+    } else if (runtime == QLatin1String("5.2.1")
+               && (s.name == QLatin1String("var1") || s.name == QLatin1String("var2") || s.name == QLatin1String("var3"))) {
+        const int quest = indexByName(QStringLiteral("quest"));
+        if (quest >= 0) {
+            if (m_mem >= 0 && m_mem != mv && m_mem < sprites.size()) {
+                sprites[m_mem].x = start.x();
+                sprites[m_mem].y = start.y();
+            }
+            s.x = sprites[quest].x + sprites[quest].w;
+            s.y = sprites[quest].y;
+            m_mem = mv;
+        }
+    } else if (runtime == QLatin1String("5.2.2") && p1 == QLatin1String("2")) {
+        const bool slotLike = !s.name.isEmpty() && (s.name[0] == QLatin1Char('v') || s.name[0] == QLatin1Char('p'));
+        if (!slotLike) {
+            int ind = -1;
+            for (int i = 0; i < sprites.size(); ++i) {
+                if (sprites[i].hit(p.x(), p.y(), true)) {
+                    ind = i;
+                    break;
+                }
+            }
+            const bool hitSlot = ind >= 0 && !sprites[ind].name.isEmpty()
+                && (sprites[ind].name[0] == QLatin1Char('v') || sprites[ind].name[0] == QLatin1Char('p'));
+            int target = ind;
+            if (hitSlot && sprites[ind].name[0] == QLatin1Char('p')) {
+                target = indexByName(QStringLiteral("void") + sprites[ind].name.mid(1));
+            }
+            if (hitSlot && target >= 0) {
+                auto placeOn = [&](int word) {
+                    sprites[word].x = sprites[target].x;
+                    sprites[word].y = sprites[target].y + 7;
+                };
+                if (m_mem < 0 && m_mem2 < 0) {
+                    m_mem = mv;
+                    placeOn(mv);
+                    m_anchor1 = QPoint(sprites[mv].x, sprites[mv].y);
+                } else if (m_mem >= 0 && m_mem2 < 0 && m_mem < sprites.size()) {
+                    if (qAbs(m_anchor1.x() - sprites[target].x) < 10) {
+                        sprites[m_mem].x = start.x();
+                        sprites[m_mem].y = start.y();
+                        m_mem = mv;
+                        placeOn(mv);
+                        m_anchor1 = QPoint(sprites[mv].x, sprites[mv].y);
+                    } else {
+                        m_mem2 = mv;
+                        placeOn(mv);
+                        m_anchor2 = QPoint(sprites[mv].x, sprites[mv].y);
+                    }
+                } else if (m_mem >= 0 && m_mem2 >= 0 && m_mem < sprites.size() && m_mem2 < sprites.size()) {
+                    qSwap(m_anchor1, m_anchor2);
+                    sprites[m_mem].x = m_anchor1.x();
+                    sprites[m_mem].y = m_anchor1.y();
+                    sprites[m_mem2].x = m_anchor2.x();
+                    sprites[m_mem2].y = m_anchor2.y();
+                }
+            }
+        }
+    } else if (runtime == QLatin1String("5.2.2")) {
+        const int line1 = indexByName(QStringLiteral("line1"));
+        const int line2 = indexByName(QStringLiteral("line2"));
+        const int q1 = indexByName(QStringLiteral("quest1"));
+        const int q2 = indexByName(QStringLiteral("quest2"));
+        if (line1 >= 0 && line2 >= 0 && q1 >= 0 && q2 >= 0) {
+            auto over = [&](int line) {
+                const ExSprite &ln = sprites[line];
+                return sprites[mv].x > ln.x && sprites[mv].x < ln.x + ln.w && sprites[mv].y > ln.y && sprites[mv].y < ln.y + ln.h;
+            };
+            auto park = [&](int word, int quest) {
+                if (word >= 0 && word < sprites.size()) {
+                    sprites[word].x = sprites[quest].x + sprites[quest].w;
+                    sprites[word].y = sprites[quest].y;
+                }
+            };
+            if (over(line1) && m_mem >= 0) {
+                park(m_mem, q2);
+                m_mem2 = m_mem;
+                m_mem = mv;
+                park(mv, q1);
+            }
+            if (over(line1) && m_mem < 0) {
+                m_mem = mv;
+                park(mv, q1);
+            }
+            if (over(line2) && m_mem2 >= 0) {
+                park(m_mem2, q1);
+                m_mem = m_mem2;
+                m_mem2 = mv;
+                park(mv, q2);
+            }
+            if (over(line2) && m_mem2 < 0) {
+                m_mem2 = mv;
+                park(mv, q2);
+            }
+        }
     }
     emit changed();
 }

@@ -424,6 +424,103 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         addCounters(359, 80, 575, 80, false);
         rightWrong(342, 114, 585, 114);
         break;
+    case ExCoverKind::C436: {
+        // _436: Устно/Письменно; RTF ответов в письменном режиме
+        combo1 = makeCombo({QStringLiteral("Устно"), QStringLiteral("Письменно")}, 243, 6, 121, 24, 10);
+        begin(3, 3);
+        next(723, 2);
+        again(723, 63);
+        label1 = makeLabel(QStringLiteral("Ответы для проверки кроссвордов"), 305, 107, false, 14);
+        label1->hide();
+        rtf = new QTextEdit(this);
+        rtf->setGeometry(3, 134, 981, 673);
+        rtf->hide();
+        break;
+    }
+    case ExCoverKind::C514: {
+        // _514: Показать / Подписать / На себе
+        begin(38, 11);
+        combo1 = makeCombo({QStringLiteral("Показать"), QStringLiteral("Подписать"), QStringLiteral("На себе")}, 270, 13, 121, 24, 10);
+        again(847, 11);
+        addCounters(450, 13, 635, 13, false);
+        rightWrong(351, 73, 594, 73);
+        dcorrect->hide();
+        dincorrect->hide();
+        label1 = makeLabel(QStringLiteral("Покажите заданную часть тела"), 363, 157, false, 14);
+        // button1/button2: 190×32 StretchImage (_514.Designer)
+        modePic = new ImageButton(this);
+        modePic->setGeometry(409, 225, 190, 32);
+        modePic->setScaledContents(true);
+        modePic->setImagePath(ExAssets::exnPath(QStringLiteral("5.1.4/sub.png")));
+        modePic->setCursor(Qt::PointingHandCursor);
+        modePic->hide();
+        showp = new ImageButton(this);
+        showp->setGeometry(409, 282, 190, 32);
+        showp->setScaledContents(true);
+        showp->setImagePath(ExAssets::exnPath(QStringLiteral("5.1.4/chp.png")));
+        showp->setCursor(Qt::PointingHandCursor);
+        showp->hide();
+        break;
+    }
+    case ExCoverKind::C515:
+        begin(29, 14);
+        next(774, 14);
+        again(774, 68);
+        addCounters(378, 70, 594, 70, false);
+        break;
+    case ExCoverKind::C521:
+        begin(13, 13);
+        next(765, 10);
+        again(765, 66);
+        // bagain в дизайнере Visible=true — всё равно скрываем до begin через общий again()
+        addCounters(259, 66, 475, 66, false);
+        break;
+    case ExCoverKind::C522:
+        begin(13, 12);
+        combo1 = makeCombo({QStringLiteral("1"), QStringLiteral("2")}, 410, 12, 60, 24, 10);
+        next(765, 12);
+        again(765, 65);
+        addCounters(298, 67, 514, 67, false);
+        break;
+    case ExCoverKind::C523: {
+        label4 = makeLabel(QStringLiteral("Уровень сложности"), 285, -4, true, 10);
+        combo1 = makeCombo({QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3")}, 337, 20, 60, 24, 10);
+        begin(4, 4);
+        next(755, 5);
+        showp = makeButton(QStringLiteral("showp.png"), 755, 62);
+        showp->hide();
+        addCounters(303, 68, 519, 68, false);
+        rightWrong(297, 118, 540, 118);
+        dcorrect->hide();
+        dincorrect->hide();
+        // _523.initEx: label1 Top=300 Arial Bold 20; label2 Top=350 Italic 20; label3 Top=400 Italic 18
+        label1 = new QLabel(this);
+        label1->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        {
+            QFont f(QStringLiteral("Arial"));
+            f.setPointSize(20);
+            f.setBold(true);
+            label1->setFont(f);
+        }
+        label2 = new QLabel(this);
+        {
+            QFont f(QStringLiteral("Arial"));
+            f.setPointSize(20);
+            f.setItalic(true);
+            label2->setFont(f);
+        }
+        label3 = new QLabel(this);
+        label3->setWordWrap(true);
+        label3->setFixedSize(700, 300);
+        label3->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+        {
+            QFont f(QStringLiteral("Arial"));
+            f.setPointSize(18);
+            f.setItalic(true);
+            label3->setFont(f);
+        }
+        break;
+    }
     case ExCoverKind::None:
         break;
     }

@@ -26,10 +26,16 @@ enum class ExCoverKind {
     C311,
     C312,
     C323,
-    C324
+    C324,
+    C436, // 4.3.6 / 5.2.5 кроссворды
+    C514, // 5.1.4 схема тела
+    C515, // 5.1.5 определение предметов по функциям
+    C521, // 5.2.1 словосочетания с опорой на картинку
+    C522, // 5.2.2 оппозиционные фонемы
+    C523  // 5.2.3 подбирать определения
 };
 
-enum class ExEngineKind { None, Movewords, Mpictures, Stories, Wolf };
+enum class ExEngineKind { None, Movewords, Mpictures, Stories, Wolf, Cross, ManBody };
 
 struct ExerciseRuntime {
     bool valid = false;

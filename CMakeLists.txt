@@ -68,6 +68,10 @@ set(PROJECT_SOURCES
         src/engines/movewordsengine.cpp
         src/engines/mpicturesengine.h
         src/engines/mpicturesengine.cpp
+        src/engines/crossengine.h
+        src/engines/crossengine.cpp
+        src/engines/manbodyengine.h
+        src/engines/manbodyengine.cpp
         src/engines/storiesengine.h
         src/engines/storiesengine.cpp
         src/engines/wolfengine.h

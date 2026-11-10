@@ -460,8 +460,12 @@ sunrise_autogen/timestamp: \
 	D:/projects/DokitLab/sunrise/src/coverpanel.h \
 	D:/projects/DokitLab/sunrise/src/custommessagebox.cpp \
 	D:/projects/DokitLab/sunrise/src/custommessagebox.h \
+	D:/projects/DokitLab/sunrise/src/engines/crossengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/crossengine.h \
 	D:/projects/DokitLab/sunrise/src/engines/exengine.cpp \
 	D:/projects/DokitLab/sunrise/src/engines/exengine.h \
+	D:/projects/DokitLab/sunrise/src/engines/manbodyengine.cpp \
+	D:/projects/DokitLab/sunrise/src/engines/manbodyengine.h \
 	D:/projects/DokitLab/sunrise/src/engines/movewordsengine.cpp \
 	D:/projects/DokitLab/sunrise/src/engines/movewordsengine.h \
 	D:/projects/DokitLab/sunrise/src/engines/mpicturesengine.cpp \

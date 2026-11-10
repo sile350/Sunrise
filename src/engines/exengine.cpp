@@ -147,11 +147,13 @@ void ExSprite::setImage(const QString &file, int scalePercent) {
     h = pix.height();
 }
 
-void ExSprite::setText(const QString &text, int fontSize, const QColor &c, int scalePercent, bool italic, int extraPadX) {
+void ExSprite::setText(const QString &text, int fontSize, const QColor &c, int scalePercent, bool italic, int extraPadX,
+                       bool bold) {
     word = text;
     color = c;
     isText = true;
     QFont font(QStringLiteral("Arial"));
+    font.setBold(bold);
     font.setItalic(italic);
     font.setPixelSize(qMax(6, qRound(fontSize * 96.0 / 72.0 * scalePercent / 100.0)));
     QFontMetrics fm(font);
@@ -171,11 +173,12 @@ void ExSprite::setText(const QString &text, int fontSize, const QColor &c, int s
     h = pix.height();
 }
 
-void ExSprite::setBox(const QString &text, int width, int height, int pointSize, bool bordered, bool bold) {
+void ExSprite::setBox(const QString &text, int width, int height, int pointSize, bool bordered, bool bold, bool italic) {
     word = text;
     isText = true;
     QFont font(QStringLiteral("Arial"));
     font.setBold(bold);
+    font.setItalic(italic);
     font.setPixelSize(qMax(6, qRound(pointSize * 96.0 / 72.0)));
     pix = QPixmap(qMax(1, width), qMax(1, height));
     pix.fill(Qt::transparent);
@@ -203,6 +206,15 @@ int ExEngine::addSprite() {
 int ExEngine::indexByName(const QString &name) const {
     for (int i = 0; i < sprites.size(); ++i) {
         if (sprites[i].name == name) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int ExEngine::indexByName2(const QString &name2) const {
+    for (int i = 0; i < sprites.size(); ++i) {
+        if (sprites[i].name2 == name2) {
             return i;
         }
     }
@@ -268,6 +280,12 @@ void ExEngine::patientRelease(const QPoint &) {
 
 void ExEngine::doctorClick(const QPoint &) {}
 
+void ExEngine::doctorClick(const QPoint &p, Qt::MouseButton button) {
+    if (button == Qt::LeftButton) {
+        doctorClick(p);
+    }
+}
+
 void ExEngine::addDoneButton(int x, int y) {
     const int i = addSprite();
     sprites[i].setImage(ExAssets::sysImage(QStringLiteral("done.png")));
@@ -306,6 +324,7 @@ void ExEngine::finishDone(bool wrong) {
 
 ExCanvas::ExCanvas(bool patient, QWidget *parent) : QWidget(parent), m_patient(patient) {
     setMouseTracking(false);
+    setContextMenuPolicy(Qt::NoContextMenu);
 }
 
 void ExCanvas::setEngine(ExEngine *engine) {
@@ -376,6 +395,9 @@ void ExCanvas::paintEvent(QPaintEvent *) {
             p.drawPixmap(sp.x, drawY, pm);
         }
         const QRect r(sp.x, drawY, sp.w, sp.h);
+        if (sp.tint.alpha() > 0) {
+            p.fillRect(r, sp.tint);
+        }
         if (sp.green) {
             p.fillRect(r, QColor(51, 204, 0, 125));
         }
@@ -413,14 +435,21 @@ void ExCanvas::mouseMoveEvent(QMouseEvent *e) {
 }
 
 void ExCanvas::mouseReleaseEvent(QMouseEvent *e) {
-    if (!m_engine || e->button() != Qt::LeftButton) {
+    if (!m_engine) {
+        return;
+    }
+    const Qt::MouseButton button = e->button();
+    if (button != Qt::LeftButton && button != Qt::RightButton) {
+        return;
+    }
+    if (m_patient && button != Qt::LeftButton) {
         return;
     }
     const QPoint sp = toScene(e->pos()).toPoint();
     if (m_patient) {
         m_engine->patientRelease(sp);
     } else {
-        m_engine->doctorClick(sp);
+        m_engine->doctorClick(sp, button);
     }
     update();
 }

@@ -7,7 +7,9 @@
 #include <QWidget>
 
 class CoverPanel;
+class CrossEngine;
 class ExEngine;
+class ManBodyEngine;
 class MPicturesEngine;
 class MovewordsEngine;
 class StoriesEngine;
@@ -90,6 +92,8 @@ private:
     void onDoctorMark(bool wrong);
     void applyParams(bool fresh);
     void syncDoctorLabels();
+    void syncManCoverButtons();
+    void rebuild523();
     void attachEngineToWindows();
     void setRunning(bool running);
     void updateCounters();
@@ -128,6 +132,8 @@ private:
     MovewordsEngine *m_mw = nullptr;
     StoriesEngine *m_st = nullptr;
     WolfEngine *m_wolf = nullptr;
+    CrossEngine *m_cross = nullptr;
+    ManBodyEngine *m_man = nullptr;
     ExEngine *m_blank = nullptr;
     ExEngine *m_active = nullptr;
     QPointer<PatientWindow> m_patient;

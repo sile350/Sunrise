@@ -3,7 +3,9 @@
 #include "approotpaths.h"
 #include "coverpanel.h"
 #include "custommessagebox.h"
+#include "engines/crossengine.h"
 #include "engines/exengine.h"
+#include "engines/manbodyengine.h"
 #include "engines/movewordsengine.h"
 #include "engines/mpicturesengine.h"
 #include "engines/rtfcoverengine.h"
@@ -108,6 +110,10 @@ ExerciseHost::ExerciseHost(const ExerciseRuntime &runtime, const ExerciseContext
         m_cover->combo1->addItem(QStringLiteral("Убрать 1 слог"));
         m_cover->combo1->setGeometry(380, 14, 180, 24);
         m_cover->combo1->setCurrentIndex(1);
+    }
+    // _515: currentEx стартует с 22
+    if (m_rt.coverKind == ExCoverKind::C515) {
+        m_ex = 22;
     }
     buildLeftColumn();
     buildEngines();
@@ -378,6 +384,25 @@ void ExerciseHost::buildEngines() {
         m_st = new StoriesEngine(this);
         m_active = m_st;
         break;
+    case ExEngineKind::Cross:
+        m_cross = new CrossEngine(this);
+        m_active = m_cross;
+        break;
+    case ExEngineKind::ManBody:
+        m_man = new ManBodyEngine(this);
+        m_active = m_man;
+        connect(m_man, &ManBodyEngine::resultRecorded, this, &ExerciseHost::onResult);
+        connect(m_man, &ManBodyEngine::doctorSelectionChanged, this, &ExerciseHost::syncManCoverButtons);
+        connect(m_man, &ManBodyEngine::labelSelectionChanged, this, [this](const QString &) {
+            syncManCoverButtons();
+        });
+        connect(m_man, &ManBodyEngine::changed, this, &ExerciseHost::syncManCoverButtons);
+        break;
+    case ExEngineKind::None:
+        if (m_rt.coverKind == ExCoverKind::C523) {
+            m_active = m_blank;
+        }
+        break;
     default:
         break;
     }
@@ -445,15 +470,27 @@ void ExerciseHost::layoutCover() {
     case ExCoverKind::C225: top = 205; bottomPad = 130; break;
     case ExCoverKind::C323: top = 200; break;
     case ExCoverKind::C324: top = 250; break;
+    case ExCoverKind::C436: top = 100; break; // cw Top=100
+    case ExCoverKind::C514: top = 330; break; // ниже label1/button1/2
+    case ExCoverKind::C515:
+    case ExCoverKind::C521:
+    case ExCoverKind::C522: top = 150; break;
+    case ExCoverKind::C523: top = 200; break;
     default: top = 150; break;
     }
     const int avail = h - top - bottomPad;
     const int w = qMin(1020, avail * 16 / 9);
-    m_cover->setMirrorGeometry(QRect(10, top, w, w * 9 / 16));
+    // _436: cw.Left=50; остальные зеркала — Left=10
+    const int mirrorLeft = (m_rt.coverKind == ExCoverKind::C436) ? 50 : 10;
+    m_cover->setMirrorGeometry(QRect(mirrorLeft, top, w, w * 9 / 16));
     if (m_leftScroll) {
         m_leftScroll->setGeometry(0, kTopBar, kLeftWidth, h);
     }
-    if (m_rt.engineKind == ExEngineKind::None) {
+    // 5.2.3: зеркало скрыто — у врача свои label1/2/3; у пациента — сцена blank.
+    if (m_rt.engineKind == ExEngineKind::None && m_rt.coverKind != ExCoverKind::C523) {
+        m_cover->mirror->hide();
+    }
+    if (m_rt.coverKind == ExCoverKind::C523 && m_cover->mirror) {
         m_cover->mirror->hide();
     }
 }
@@ -483,14 +520,32 @@ void ExerciseHost::wireCover() {
     if (c->updateR) {
         connect(c->updateR, &ImageButton::clicked, this, [this]() { applyParams(true); });
     }
-    for (ImageButton *b : {c->showp, c->explainBtn, c->showStory}) {
-        bind(b, &ExerciseHost::onShowp);
+    // 5.1.4: modePic/showp = button1/button2 (картинки задания), не showp-тоггл.
+    if (m_rt.coverKind != ExCoverKind::C514) {
+        for (ImageButton *b : {c->showp, c->explainBtn, c->showStory}) {
+            bind(b, &ExerciseHost::onShowp);
+        }
+    } else {
+        bind(c->explainBtn, &ExerciseHost::onShowp);
+        bind(c->showStory, &ExerciseHost::onShowp);
     }
     if (c->dcorrect) {
-        connect(c->dcorrect, &ImageButton::clicked, this, [this]() { onDoctorMark(false); });
+        connect(c->dcorrect, &ImageButton::clicked, this, [this]() {
+            if (m_rt.coverKind == ExCoverKind::C514 && m_man) {
+                m_man->markManual(false);
+            } else {
+                onDoctorMark(false);
+            }
+        });
     }
     if (c->dincorrect) {
-        connect(c->dincorrect, &ImageButton::clicked, this, [this]() { onDoctorMark(true); });
+        connect(c->dincorrect, &ImageButton::clicked, this, [this]() {
+            if (m_rt.coverKind == ExCoverKind::C514 && m_man) {
+                m_man->markManual(true);
+            } else {
+                onDoctorMark(true);
+            }
+        });
     }
     for (QComboBox *cb : {c->combo1, c->combo2, c->combo3, c->combo4}) {
         if (cb) {
@@ -501,8 +556,8 @@ void ExerciseHost::wireCover() {
             });
         }
     }
-    // 1.1.2: переключатель показать/подписать
-    if (c->modePic) {
+    // 1.1.2: переключатель показать/подписать (не путать с button1 в 5.1.4)
+    if (c->modePic && m_rt.coverKind == ExCoverKind::C112) {
         connect(c->modePic, &ImageButton::clicked, this, [this]() {
             m_modeTag = m_modeTag == QLatin1String("1") ? QStringLiteral("2") : QStringLiteral("1");
             m_cover->modePic->setImagePath(ExAssets::sysImage(m_modeTag == QLatin1String("1") ? QStringLiteral("ppod.png") : QStringLiteral("skrp.png")));
@@ -512,6 +567,9 @@ void ExerciseHost::wireCover() {
                 attachEngineToWindows();
             }
         });
+    }
+    if (c->rtf && m_rt.coverKind == ExCoverKind::C436) {
+        RtfCover::loadInto(c->rtf, ExAssets::exnPath(QStringLiteral("4.3.6/ответы_для письменного_выполнения.rtf")));
     }
     // 2.1.4: выбор союза
     for (int i = 0; i < 5; ++i) {
@@ -755,6 +813,62 @@ void ExerciseHost::updateVisibility() {
         c->mirror->setVisible(oral);
         break;
     }
+    case ExCoverKind::C436: {
+        const bool oral = !c->combo1 || c->combo1->currentIndex() == 0;
+        vis(c->combo1, !run);
+        vis(c->nextz, oral);
+        vis(c->bagain, run && oral);
+        vis(c->label1, !oral); // «Ответы для проверки…» в письменном
+        vis(c->rtf, !oral);
+        if (c->rtf && !oral) {
+            // _436.combo: Height = 800 в «Письменно»
+            c->rtf->setGeometry(3, 134, 981, 800);
+            c->rtf->raise();
+        } else if (c->rtf) {
+            c->rtf->setGeometry(3, 134, 981, 673);
+        }
+        if (c->mirror) {
+            c->mirror->setVisible(oral);
+        }
+        break;
+    }
+    case ExCoverKind::C514: {
+        // _514.combo: bagain при Показать/Подписать; right/unright при «На себе»
+        const QString mode = c->combo1 ? c->combo1->currentText() : QStringLiteral("Показать");
+        const bool sub = mode == QLatin1String("Подписать");
+        const bool onSelf = mode == QLatin1String("На себе");
+        vis(c->combo1, !run);
+        vis(c->bagain, !onSelf);
+        vis(c->dcorrect, onSelf);
+        vis(c->dincorrect, onSelf);
+        vis(c->modePic, sub);
+        vis(c->showp, sub);
+        break;
+    }
+    case ExCoverKind::C515:
+        vis(c->bagain, run);
+        break;
+    case ExCoverKind::C521:
+        // _521.Designer: bagain Visible=true; stopu_Click прячет
+        vis(c->bagain, run || !m_begun);
+        break;
+    case ExCoverKind::C522:
+        // _522.Designer: bagain всегда visible
+        vis(c->combo1, !run);
+        vis(c->bagain, true);
+        break;
+    case ExCoverKind::C523: {
+        vis(c->label4, !run);
+        vis(c->combo1, !run);
+        vis(c->showp, run);
+        vis(c->dcorrect, run);
+        vis(c->dincorrect, run);
+        // label1/2/3 на обложке врача всегда; зеркало скрыто
+        if (c->mirror) {
+            c->mirror->hide();
+        }
+        break;
+    }
     default:
         break;
     }
@@ -770,6 +884,7 @@ bool ExerciseHost::isWrittenMode() const {
     case ExCoverKind::C123: return c->combo2->currentText() == QLatin1String("3");
     case ExCoverKind::C114: return c->combo1 && c->combo1->currentText() == QLatin1String("2");
     case ExCoverKind::C226: return c->combo1 && c->combo1->currentText() == QLatin1String("3");
+    case ExCoverKind::C436: return c->combo1 && c->combo1->currentIndex() == 1;
     default: return false;
     }
 }
@@ -778,6 +893,10 @@ bool ExerciseHost::usesPatientWindow() const {
     // Как в оригинале: отдельный экран пациента только там, где есть uprSpace / зеркало.
     // Текстовые/письменные режимы (инструкции 1.1.1, письменные варианты и т.п.) — только у врача.
     // 8.2: беседа ур.2 — вопрос на экране пациента. 21.7: задание 3 «Составление рассказа» — about.rtf.
+    // 5.2.3: engine None, но uprSpace с label1/2/3 есть.
+    if (m_rt.coverKind == ExCoverKind::C523) {
+        return true;
+    }
     if (m_rt.coverKind == ExCoverKind::C1 || m_rt.engineKind == ExEngineKind::None) {
         return false;
     }
@@ -850,6 +969,28 @@ void ExerciseHost::applyParams(bool fresh) {
         m_st->storyIndex = c->combo1->currentIndex() + 1;
         m_st->rebuild();
         break;
+    case ExCoverKind::C436:
+        if (m_cross && (!c->combo1 || c->combo1->currentIndex() == 0)) {
+            m_cross->rebuild(m_ex);
+        }
+        break;
+    case ExCoverKind::C514:
+        if (m_man) {
+            const QString t = c->combo1 ? c->combo1->currentText() : QStringLiteral("Показать");
+            if (t == QLatin1String("Подписать")) {
+                m_man->mode = QStringLiteral("sub");
+            } else if (t == QLatin1String("На себе")) {
+                m_man->mode = QStringLiteral("3");
+            } else {
+                m_man->mode.clear();
+            }
+            m_man->rebuild();
+            syncManCoverButtons();
+        }
+        break;
+    case ExCoverKind::C523:
+        rebuild523();
+        break;
     default:
         if (m_mw) {
             m_mw->runtime = m_rt.runtimeId;
@@ -883,6 +1024,12 @@ void ExerciseHost::applyParams(bool fresh) {
                 break;
             case ExCoverKind::C324:
                 m_mw->p1 = c->combo1 ? c->combo1->currentText() : QStringLiteral("Устно");
+                break;
+            case ExCoverKind::C515:
+            case ExCoverKind::C521:
+                break;
+            case ExCoverKind::C522:
+                m_mw->p1 = c->combo1 ? c->combo1->currentText() : QStringLiteral("1");
                 break;
             default:
                 break;
@@ -925,7 +1072,123 @@ void ExerciseHost::syncDoctorLabels() {
         c->taskLabel->setText(m_mw->taskText);
         c->explainLabel->setText(m_mw->explanationText);
     }
+    if (m_rt.coverKind == ExCoverKind::C514 && c->label1 && c->combo1) {
+        const QString t = c->combo1->currentText();
+        if (t == QLatin1String("Подписать")) {
+            c->label1->setText(QStringLiteral("Подпишите заданную часть тела"));
+        } else if (t == QLatin1String("На себе")) {
+            c->label1->setText(QStringLiteral(" Покажите заданную часть тела на себе"));
+        } else {
+            c->label1->setText(QStringLiteral("Покажите заданную часть тела"));
+        }
+        c->label1->adjustSize();
+    }
     updateCounters();
+}
+
+void ExerciseHost::syncManCoverButtons() {
+    if (m_rt.coverKind != ExCoverKind::C514 || !m_man || !m_cover) {
+        return;
+    }
+    CoverPanel *c = m_cover;
+    // _514.Designer: Size 190×32, SizeMode StretchImage
+    if (c->modePic) {
+        c->modePic->setGeometry(409, 225, 190, 32);
+        c->modePic->setScaledContents(true);
+        c->modePic->setImagePath(m_man->coverTaskImage());
+    }
+    if (c->showp) {
+        c->showp->setGeometry(409, 282, 190, 32);
+        c->showp->setScaledContents(true);
+        c->showp->setImagePath(m_man->coverChipImage());
+    }
+}
+
+void ExerciseHost::rebuild523() {
+    CoverPanel *c = m_cover;
+    const QStringList lines = ExAssets::readLines(ExAssets::exnPath(QStringLiteral("5.2.3/data.txt")));
+    if (lines.isEmpty()) {
+        return;
+    }
+    if (m_ex < 1) {
+        m_ex = 1;
+    }
+    if (m_ex > lines.size()) {
+        m_ex = lines.size();
+    }
+    const QStringList tmp = lines.at(m_ex - 1).split(QLatin1Char(';'));
+    const QString word = tmp.value(0);
+    const QString defs = tmp.value(1);
+    const QString level = c->combo1 ? c->combo1->currentText() : QStringLiteral("1");
+    QString levelCaption = QStringLiteral("(1 определение)");
+    if (level == QLatin1String("2")) {
+        levelCaption = QStringLiteral("(2 определения)");
+    } else if (level == QLatin1String("3")) {
+        levelCaption = QStringLiteral("(3 определения)");
+    }
+    if (c->label1) {
+        QFont f(QStringLiteral("Arial"));
+        f.setPointSize(20);
+        f.setBold(true);
+        c->label1->setFont(f);
+        c->label1->setText(word);
+        c->label1->adjustSize();
+        c->label1->move((900 - c->label1->width()) / 2, 300);
+    }
+    if (c->label2) {
+        QFont f(QStringLiteral("Arial"));
+        f.setPointSize(20);
+        f.setItalic(true);
+        c->label2->setFont(f);
+        c->label2->setText(levelCaption);
+        c->label2->adjustSize();
+        c->label2->move((900 - c->label2->width()) / 2, 350);
+    }
+    if (c->label3) {
+        QFont f(QStringLiteral("Arial"));
+        f.setPointSize(18);
+        f.setItalic(true);
+        c->label3->setFont(f);
+        c->label3->setText(defs);
+        c->label3->setFixedSize(700, 300);
+        c->label3->move((900 - 700) / 2, 400);
+        c->label3->setVisible(true); // у врача определения видны всегда
+    }
+    // Пациент: слово Bold 25 + подпись Italic 20; определения Italic 18 скрыты до showp
+    if (m_blank) {
+        m_blank->clear();
+        m_hintShown = false;
+        {
+            const int i = m_blank->addSprite();
+            ExSprite &s = m_blank->sprites[i];
+            s.name = QStringLiteral("word");
+            s.setText(word, 25, Qt::black, 100, false, 0, true);
+            s.x = (1920 - s.w) / 2;
+            s.y = 300;
+        }
+        {
+            const int i = m_blank->addSprite();
+            ExSprite &s = m_blank->sprites[i];
+            s.name = QStringLiteral("level");
+            s.setText(levelCaption, 20, Qt::black, 100, true);
+            s.x = (1920 - s.w) / 2;
+            s.y = 350;
+        }
+        {
+            const int i = m_blank->addSprite();
+            ExSprite &s = m_blank->sprites[i];
+            s.name = QStringLiteral("defs");
+            s.setBox(defs, 700, 300, 18, false, false, true);
+            s.x = (1920 - 700) / 2;
+            s.y = 400;
+            s.visible = false;
+            s.patientOnly = true;
+        }
+        emit m_blank->changed();
+    }
+    if (c->showp) {
+        c->showp->setImagePath(ExAssets::sysImage(QStringLiteral("showp.png")));
+    }
 }
 
 void ExerciseHost::updateCounters() {
@@ -968,6 +1231,15 @@ void ExerciseHost::onParamChanged(QComboBox *source) {
         // _112.param_SelectedIndexChanged / _312.comboBox1_SelectedIndexChanged обнуляют счётчики
         m_ecounter = 0;
         m_ecorrect = 0;
+        break;
+    case ExCoverKind::C522:
+    case ExCoverKind::C523:
+        // _522/_523.combo: обнуляют счётчики; _514.combo — нет
+        m_ecounter = 0;
+        m_ecorrect = 0;
+        break;
+    case ExCoverKind::C436:
+        // смена Устно/Письменно — обновить видимость RTF/зеркала
         break;
     default:
         break;
@@ -1036,6 +1308,12 @@ void ExerciseHost::setRunning(bool running) {
         case ExCoverKind::C311: // 22: пропущенные слоги
         case ExCoverKind::C323: // 25: синонимы/антонимы
         case ExCoverKind::C324: // 26: пропущенные буквы
+        case ExCoverKind::C436:
+        case ExCoverKind::C514:
+        case ExCoverKind::C515:
+        case ExCoverKind::C521:
+        case ExCoverKind::C522:
+        case ExCoverKind::C523:
             resetProtocolToTemplate();
             break;
         case ExCoverKind::C312: // 24.6: слоги (data2); буквы (data1) — только счётчики
@@ -1092,6 +1370,7 @@ void ExerciseHost::onBegin() {
         || m_rt.coverKind == ExCoverKind::C311 || m_rt.coverKind == ExCoverKind::C312
         || m_rt.coverKind == ExCoverKind::C323 || m_rt.coverKind == ExCoverKind::C324
         || (m_rt.coverKind == ExCoverKind::C226 && c->combo1 && c->combo1->currentText() == QLatin1String("2"))) {
+        // 5.1.4–5.2.3: beginu не обнуляет счётчики (в отличие от ряда других обложек)
         m_ecounter = 0;
         m_ecorrect = 0;
     }
@@ -1104,6 +1383,20 @@ void ExerciseHost::onBegin() {
     if (m_rt.coverKind == ExCoverKind::C122 && c->combo1->currentIndex() == 2) {
         openExternal(QStringLiteral("1.2.2/Без_опоры_на_образец.rtf"));
         setRunning(true);
+        return;
+    }
+    if (m_rt.coverKind == ExCoverKind::C436 && c->combo1 && c->combo1->currentIndex() == 1) {
+        openExternal(QStringLiteral("4.3.6/Кроссворды.rtf"));
+        if (c->rtf) {
+            RtfCover::loadInto(c->rtf, ExAssets::exnPath(QStringLiteral("4.3.6/ответы_для письменного_выполнения.rtf")));
+            c->rtf->show();
+            c->rtf->raise();
+        }
+        if (c->label1) {
+            c->label1->show();
+        }
+        setRunning(true);
+        updateVisibility();
         return;
     }
     if (m_rt.coverKind == ExCoverKind::C123 && c->combo2->currentText() == QLatin1String("3")) {
@@ -1364,6 +1657,33 @@ void ExerciseHost::onNext() {
         }
         ++m_ex;
         break;
+    case ExCoverKind::C436:
+        ++m_ex;
+        if (m_ex == 11) {
+            m_ex = 1;
+        }
+        break;
+    case ExCoverKind::C515:
+        ++m_ex;
+        if (m_ex == 65) {
+            m_ex = 1;
+        }
+        break;
+    case ExCoverKind::C521:
+        ++m_ex;
+        if (m_ex == 30) {
+            m_ex = 1;
+        }
+        break;
+    case ExCoverKind::C522:
+        ++m_ex;
+        if (m_ex == 31) {
+            m_ex = 1;
+        }
+        break;
+    case ExCoverKind::C523:
+        ++m_ex; // без верхней границы, как в _523.nextz_Click
+        break;
     default:
         ++m_ex;
         break;
@@ -1431,6 +1751,18 @@ void ExerciseHost::onShowp() {
         c->showStory->setImagePath(ExAssets::exnPath(m_st->contentVisible ? QStringLiteral("2.2.2/Скрыть  на экране пациента.png")
                                                                          : QStringLiteral("2.2.2/Показать на экране пациента.png")));
         m_st->rebuild();
+        break;
+    }
+    case ExCoverKind::C523: {
+        m_hintShown = !m_hintShown;
+        c->showp->setImagePath(ExAssets::sysImage(m_hintShown ? QStringLiteral("hidep.png") : QStringLiteral("showp.png")));
+        if (m_blank) {
+            const int di = m_blank->indexByName(QStringLiteral("defs"));
+            if (di >= 0) {
+                m_blank->sprites[di].visible = m_hintShown;
+                emit m_blank->changed();
+            }
+        }
         break;
     }
     default:
@@ -1561,6 +1893,37 @@ bool ExerciseHost::buildProtocolRow(FormedRow *out) const {
         r.firstColumn = QStringLiteral("Выполнение");
         row.first = ExProtocol::escape(combo1);
         out->forceNew = true;
+    } else if (u == QLatin1String("4.3.6")) {
+        // оригинал: баллы почти всегда &nbsp; (мертвый 1==2); если врач отметил radio — пишем
+        score = blsAbove(0);
+        out->header = QStringLiteral("4.3.6/header.html");
+        out->forceNew = true;
+    } else if (u == QLatin1String("5.1.4") || u == QLatin1String("5.1.5") || u == QLatin1String("5.2.1")) {
+        score = bands(bandsMinus);
+        out->forceNew = true;
+    } else if (u == QLatin1String("5.2.2")) {
+        score = bands(bandsMinus);
+        r.firstColumn = QStringLiteral("Сюжет");
+        r.hasMaxRow = true;
+        r.resultIsCopy = true;
+        r.result = nb2;
+        resultFromScore = false;
+        row.first = combo1 == QLatin1String("2") ? QStringLiteral("На картинку") : QStringLiteral("На фразу");
+    } else if (u == QLatin1String("5.2.3")) {
+        int v = bands(bandsMinus).toInt();
+        if (combo1 == QLatin1String("2")) {
+            v += 1;
+        } else if (combo1 == QLatin1String("3")) {
+            v += 2;
+        }
+        score = QString::number(v);
+        r.maxScore = 5;
+        r.firstColumn = QStringLiteral("Уров. сложн.");
+        r.hasMaxRow = true;
+        r.resultIsCopy = true;
+        r.result = nb2;
+        resultFromScore = false;
+        row.first = ExProtocol::escape(combo1);
     } else {
         return false;
     }

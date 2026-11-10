@@ -6,7 +6,8 @@
 #include <QStringList>
 #include <QVector>
 
-// Порт Engines\movewords.cs: упражнения 1.2.2, 2.1.1-2.1.4, 2.2.3-2.2.6, 3.1.1, 3.1.2, 3.2.3, 3.2.4.
+// Порт Engines\movewords.cs: упражнения 1.2.2, 2.1.1-2.1.4, 2.2.3-2.2.6, 3.1.1, 3.1.2, 3.2.3, 3.2.4,
+// 5.1.5, 5.2.1, 5.2.2.
 class MovewordsEngine : public ExEngine {
     Q_OBJECT
 public:
@@ -55,6 +56,9 @@ private:
     void build312();
     void build323();
     void build324();
+    void build515();
+    void build521();
+    void build522();
     // помощники
     int addText(const QString &text, int x, int y, int fontSize = 26, const QColor &c = Qt::black,
                 const QString &name = QString(), bool movable = false, int scale = 100, int extraPadX = 0);
@@ -79,8 +83,12 @@ private:
     void centerDoc(int idx, int scale, int docWidth = 900, int extra = 0);
 
     QVector<QPoint> m_home;
-    int m_mem = -1;         // 1.2.2/3.1.1/3.2.3: спрайт, занявший пропуск
+    int m_mem = -1;         // 1.2.2/3.1.1/3.2.3/5.1.5/5.2.1 и первое слово 5.2.2
+    int m_mem2 = -1;        // 5.2.2: второе поставленное слово
     QPoint m_memPos;        // его прежнее место
+    QPoint m_anchor1;       // 5.2.2: слот первого слова (x/y после постановки)
+    QPoint m_anchor2;
+    QString m_answer;       // 5.1.5 имя картинки, 5.2.1 «1»..«3», 5.2.2 «r» или пусто
     int m_lineMax = 0;
     int m_sortLeft = 0;
     int m_sortY = 0;
