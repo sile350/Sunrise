@@ -244,6 +244,7 @@ QString ManBodyEngine::partName2(bool front, int part) const {
 }
 
 int ManBodyEngine::partAt(const QPoint &p, bool *frontOut) const {
+    // Сначала точное попадание в bbox оверлея (даже если он скрыт).
     int found = -1;
     bool foundFront = true;
     for (int i = 0; i < m_front.size(); ++i) {
@@ -257,6 +258,35 @@ int ManBodyEngine::partAt(const QPoint &p, bool *frontOut) const {
             found = i;
             foundFront = false;
         }
+    }
+    // Клик по силуэту / рядом: ближайший центр оверлея — иначе на зеркале врача
+    // мелкие части почти не ловятся, и «Готово» молча ничего не делает (нет выбора врача).
+    if (found < 0) {
+        auto dist2 = [&](const ExSprite &b) -> qint64 {
+            const qint64 cx = b.x + b.w / 2;
+            const qint64 cy = b.y + b.h / 2;
+            const qint64 dx = p.x() - cx;
+            const qint64 dy = p.y() - cy;
+            return dx * dx + dy * dy;
+        };
+        constexpr qint64 kMax = 120LL * 120LL;
+        qint64 bestDist = kMax + 1;
+        auto consider = [&](const QVector<Part> &list, bool frontSide) {
+            for (int i = 0; i < list.size(); ++i) {
+                const ExSprite &b = sprites[list[i].blue];
+                if (b.w <= 0 || b.h <= 0) {
+                    continue;
+                }
+                const qint64 d = dist2(b);
+                if (d <= kMax && d < bestDist) {
+                    bestDist = d;
+                    found = i;
+                    foundFront = frontSide;
+                }
+            }
+        };
+        consider(m_front, true);
+        consider(m_back, false);
     }
     if (found >= 0 && frontOut) {
         *frontOut = foundFront;
@@ -525,7 +555,8 @@ void ManBodyEngine::patientRelease(const QPoint &p) {
         return;
     }
     const int done = indexByName(QStringLiteral("done"));
-    if (done >= 0 && sprites[done].visible && sprites[done].hit(p.x(), p.y(), true)) {
+    // hit() требует visible; для «Готово» достаточно bbox (кнопка всегда в сцене в режимах 1–2).
+    if (done >= 0 && sprites[done].visible && hitBox(sprites[done], p)) {
         submit();
         return;
     }
@@ -549,6 +580,14 @@ void ManBodyEngine::patientRelease(const QPoint &p) {
 void ManBodyEngine::doctorClick(const QPoint &p) {
     if (block) {
         return;
+    }
+    // В «Подписать» врач может кликнуть подпись на зеркале.
+    if (mode == QLatin1String("sub")) {
+        const int lab = labelAt(p);
+        if (lab >= 0) {
+            chooseLabel(sprites[lab].name);
+            return;
+        }
     }
     bool front = true;
     const int part = partAt(p, &front);

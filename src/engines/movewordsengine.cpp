@@ -909,13 +909,9 @@ void MovewordsEngine::build515() {
     if (qLine < lines.size()) {
         const QStringList qa = splitQ(lines[qLine]);
         m_answer = qa.value(1);
-        // Врач: (370,100); пациент: центр 1920, y*2 (как requestData *100/50 + setCenter)
-        const int qd = addText(qa.value(0), 370, 100, 26, Qt::black, QStringLiteral("questD"));
-        sprites[qd].doctorOnly = true;
-        const int qp = addText(qa.value(0), 0, 100 * 2, 26, Qt::black, QStringLiteral("quest"));
-        sprites[qp].setCenterX(1920);
-        sprites[qp].patientOnly = true;
-        Q_UNUSED(qd);
+        // Единая раскладка пациента (×2) — зеркало врача масштабирует ту же сцену пропорционально.
+        const int quest = addText(qa.value(0), 0, 100 * 2, 28, Qt::black, QStringLiteral("quest"));
+        sprites[quest].setCenterX(1920);
     }
     const int px[3] = {170, 490, 310};
     const int py[3] = {150, 150, 350};
@@ -927,14 +923,10 @@ void MovewordsEngine::build515() {
         if (qa.value(1).isEmpty()) {
             continue;
         }
-        // Врач: scale 50 на (170/490/310, 150/350); пациент: *2 и 100%
-        const int id = addImage(dataPath(qa.value(1) + QStringLiteral(".png")), px[k], py[k], qa.value(1) + QStringLiteral("D"), 50);
-        sprites[id].doctorOnly = true;
-        if (qa.value(1).compare(m_answer, Qt::CaseInsensitive) == 0) {
-            sprites[id].dborder = true;
-        }
         const int i = addImage(dataPath(qa.value(1) + QStringLiteral(".png")), px[k] * 2, py[k] * 2, qa.value(1));
-        sprites[i].patientOnly = true;
+        if (qa.value(1).compare(m_answer, Qt::CaseInsensitive) == 0) {
+            sprites[i].dborder = true; // рамка-подсказка только на зеркале врача
+        }
     }
     addDoneButton(1590, 750);
 }
@@ -953,15 +945,16 @@ void MovewordsEngine::build521() {
     if (vars.size() < 3) {
         return;
     }
-    m_answer = t[2];
+    m_answer = t[2].trimmed();
     const int line = addImage(dataPath(QStringLiteral("line.png")), 0, 140 * 100 / 60, QStringLiteral("line"));
     centerDoc(line, 60, 900);
-    addText(t[0], 290 * 100 / 60, 145 * 100 / 60, 30, Qt::black, QStringLiteral("quest"));
+    addText(t[0].trimmed(), 290 * 100 / 60, 145 * 100 / 60, 30, Qt::black, QStringLiteral("quest"));
     int x = 280 * 100 / 60;
     const int y = 210 * 100 / 60;
     const int gap = 20 * 100 / 60;
     for (int k = 0; k < 3; ++k) {
-        const int i = addText(vars[k], x, y, 30, Qt::black, QStringLiteral("var%1").arg(k + 1));
+        // Варианты перетаскиваются к фразе (как movable words в оригинале).
+        const int i = addText(vars[k].trimmed(), x, y, 30, Qt::black, QStringLiteral("var%1").arg(k + 1), true);
         x += sprites[i].w + gap;
     }
     addImage(dataPath(QString::number(currentEx) + QStringLiteral(".png")), 280 * 100 / 60, 350 * 100 / 60);
@@ -998,13 +991,14 @@ void MovewordsEngine::build522() {
     if (t.size() < 5) {
         return;
     }
-    m_answer = t[4];
+    m_answer = t.value(4).trimmed();
     addImage(dataPath(QStringLiteral("line.png")), 150 * 100 / 60, 90 * 100 / 60, QStringLiteral("line1"));
     addImage(dataPath(QStringLiteral("line.png")), 150 * 100 / 60, 190 * 100 / 60, QStringLiteral("line2"));
-    addText(t[0], 150 * 100 / 60, 130 * 100 / 60, 30, Qt::black, QStringLiteral("quest1"));
-    addText(t[1], 150 * 100 / 60, 220 * 100 / 60, 30, Qt::black, QStringLiteral("quest2"));
-    const int v1 = addText(t[2], 400 * 100 / 60, 300 * 100 / 60, 30, Qt::black, QStringLiteral("var1"), true);
-    addText(t[3], sprites[v1].x + sprites[v1].w + 100 * 100 / 60, 300 * 100 / 60, 30, Qt::black, QStringLiteral("var2"), true);
+    addText(t[0].trimmed(), 150 * 100 / 60, 130 * 100 / 60, 30, Qt::black, QStringLiteral("quest1"));
+    addText(t[1].trimmed(), 150 * 100 / 60, 220 * 100 / 60, 30, Qt::black, QStringLiteral("quest2"));
+    const int v1 = addText(t[2].trimmed(), 400 * 100 / 60, 300 * 100 / 60, 30, Qt::black, QStringLiteral("var1"), true);
+    addText(t[3].trimmed(), sprites[v1].x + sprites[v1].w + 100 * 100 / 60, 300 * 100 / 60, 30, Qt::black,
+            QStringLiteral("var2"), true);
     addDoneButton(1580, 650);
 }
 

@@ -833,11 +833,12 @@ void ExerciseHost::updateVisibility() {
         break;
     }
     case ExCoverKind::C514: {
-        // _514.combo: bagain при Показать/Подписать; right/unright при «На себе»
+        // Комбо режима остаётся доступным и во время выполнения — иначе нельзя сменить
+        // «Показать» → «Подписать» / «На себе» без остановки.
         const QString mode = c->combo1 ? c->combo1->currentText() : QStringLiteral("Показать");
         const bool sub = mode == QLatin1String("Подписать");
         const bool onSelf = mode == QLatin1String("На себе");
-        vis(c->combo1, !run);
+        vis(c->combo1, true);
         vis(c->bagain, !onSelf);
         vis(c->dcorrect, onSelf);
         vis(c->dincorrect, onSelf);
@@ -986,6 +987,7 @@ void ExerciseHost::applyParams(bool fresh) {
             }
             m_man->rebuild();
             syncManCoverButtons();
+            attachEngineToWindows();
         }
         break;
     case ExCoverKind::C523:
@@ -1369,8 +1371,11 @@ void ExerciseHost::onBegin() {
         || m_rt.coverKind == ExCoverKind::C224 || m_rt.coverKind == ExCoverKind::C225
         || m_rt.coverKind == ExCoverKind::C311 || m_rt.coverKind == ExCoverKind::C312
         || m_rt.coverKind == ExCoverKind::C323 || m_rt.coverKind == ExCoverKind::C324
+        || m_rt.coverKind == ExCoverKind::C436
+        || m_rt.coverKind == ExCoverKind::C514 || m_rt.coverKind == ExCoverKind::C515
+        || m_rt.coverKind == ExCoverKind::C521 || m_rt.coverKind == ExCoverKind::C522
+        || m_rt.coverKind == ExCoverKind::C523
         || (m_rt.coverKind == ExCoverKind::C226 && c->combo1 && c->combo1->currentText() == QLatin1String("2"))) {
-        // 5.1.4–5.2.3: beginu не обнуляет счётчики (в отличие от ряда других обложек)
         m_ecounter = 0;
         m_ecorrect = 0;
     }
@@ -1424,6 +1429,11 @@ void ExerciseHost::onBegin() {
         applyParams(true);
     } else if (m_rt.coverKind == ExCoverKind::C226) {
         // Зад.3: очистить сцену зад.2 до показа about.rtf на зеркале/пациенте.
+        applyParams(true);
+    } else if (m_rt.coverKind == ExCoverKind::C436 || m_rt.coverKind == ExCoverKind::C514
+               || m_rt.coverKind == ExCoverKind::C515 || m_rt.coverKind == ExCoverKind::C521
+               || m_rt.coverKind == ExCoverKind::C522 || m_rt.coverKind == ExCoverKind::C523) {
+        // Новые упр. 4.3.6 / 5.x: при «Начать» пересобрать сцену и сбросить выбор.
         applyParams(true);
     } else if (m_rt.coverKind == ExCoverKind::C225 || m_rt.coverKind == ExCoverKind::C114 ||
                (m_active && m_active->block)) {

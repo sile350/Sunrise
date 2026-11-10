@@ -17,22 +17,26 @@ const QColor kLetter(102, 255, 153);
 const QColor kSelect(238, 237, 133, 121);
 const QColor kClear(0, 0, 0, 0);
 
+constexpr int kCluePointSize = 20; // крупнее оригинальных 12pt — и у врача, и у пациента
+
 QPixmap cluePixmap(const QString &text, bool selected) {
-    // cross.Designer: Microsoft Sans Serif 12pt
     QFont font(QStringLiteral("Microsoft Sans Serif"));
     font.setStyleHint(QFont::SansSerif);
-    font.setPointSize(12);
+    font.setPointSize(kCluePointSize);
     QFontMetrics fm(font);
-    const int pad = 2;
-    const int w = fm.horizontalAdvance(text) + pad * 2;
-    const int h = fm.height() + 2;
+    const int pad = 4;
+    // Длинные формулировки — с переносом в пределах панели вопросов (~700px)
+    const int maxW = 700;
+    const QRect br = fm.boundingRect(QRect(0, 0, maxW - pad * 2, 2000), Qt::TextWordWrap, text);
+    const int w = qMin(maxW, br.width() + pad * 2);
+    const int h = br.height() + pad;
     QPixmap pm(qMax(1, w), qMax(1, h));
     pm.fill(selected ? QColor(255, 255, 0) : Qt::transparent);
     QPainter p(&pm);
     p.setRenderHint(QPainter::TextAntialiasing, true);
     p.setFont(font);
     p.setPen(Qt::black);
-    p.drawText(QRect(pad, 0, w - pad, h), Qt::AlignLeft | Qt::AlignVCenter, text);
+    p.drawText(QRect(pad, pad / 2, w - pad * 2, h - pad / 2), Qt::AlignLeft | Qt::AlignTop | Qt::TextWordWrap, text);
     return pm;
 }
 
@@ -299,25 +303,26 @@ void CrossEngine::addClue(const QString &name, const QString &text, int localX, 
 void CrossEngine::addClues() {
     // В оригинале Labels qg/qv есть и у врача, и у пациента (fillTextQuestion) — клик пациента выбирает слово.
     const int h = addSprite();
-    sprites[h].setBox(QStringLiteral("По горизонтали"), 220, 22, 10, false, true);
+    sprites[h].setBox(QStringLiteral("По горизонтали"), 280, 28, 14, false, true);
     sprites[h].x = kClueX + 20;
-    sprites[h].y = kClueY + 12;
+    sprites[h].y = kClueY + 8;
     sprites[h].name = QStringLiteral("hor");
-    const int v = addSprite();
-    sprites[v].setBox(QStringLiteral("По вертикали"), 200, 22, 10, false, true);
-    sprites[v].x = kClueX + 20;
-    sprites[v].y = kClueY + 142;
-    sprites[v].name = QStringLiteral("ver");
 
-    static const int gx[] = {20, 19, 19, 20};
-    static const int gy[] = {39, 64, 91, 120};
-    static const int vx[] = {20, 21, 22, 21};
-    static const int vy[] = {170, 196, 222, 249};
+    int y = kClueY + 42;
     for (int i = 0; i < gClues.size() && i < 4; ++i) {
-        addClue(QStringLiteral("qg") + QString::number(i + 1), gClues[i], gx[i], gy[i]);
+        addClue(QStringLiteral("qg") + QString::number(i + 1), gClues[i], 20, y - kClueY);
+        y += sprites.last().h + 8;
     }
+    y += 12;
+    const int v = addSprite();
+    sprites[v].setBox(QStringLiteral("По вертикали"), 260, 28, 14, false, true);
+    sprites[v].x = kClueX + 20;
+    sprites[v].y = y;
+    sprites[v].name = QStringLiteral("ver");
+    y += sprites[v].h + 10;
     for (int i = 0; i < vClues.size() && i < 4; ++i) {
-        addClue(QStringLiteral("qv") + QString::number(i + 1), vClues[i], vx[i], vy[i]);
+        addClue(QStringLiteral("qv") + QString::number(i + 1), vClues[i], 20, y - kClueY);
+        y += sprites.last().h + 8;
     }
 }
 
