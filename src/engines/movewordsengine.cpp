@@ -178,7 +178,8 @@ void MovewordsEngine::rebuild(bool resetState) {
         v = -1;
     }
     // uprSpace 5.1.5: BackColor 245; остальные движки — 249
-    background = (runtime == QLatin1String("5.1.5")) ? QColor(245, 245, 245) : QColor(249, 249, 249);
+    // Единый фон с экраном пациента (без серой «подложки» и полос по бокам).
+    background = QColor(249, 249, 249);
     m_hostApplied = false;
     m_lineMax = 0;
     m_sortLeft = 0;
@@ -913,13 +914,20 @@ void MovewordsEngine::build515() {
         const int quest = addText(qa.value(0), 0, 100 * 2, 28, Qt::black, QStringLiteral("quest"));
         sprites[quest].setCenterX(1920);
     }
+    // Три слота; порядок картинок перемешиваем, чтобы верный ответ не всегда был в одном месте.
+    int order[3] = {0, 1, 2};
+    for (int i = 2; i > 0; --i) {
+        const int j = int(QRandomGenerator::global()->bounded(i + 1));
+        qSwap(order[i], order[j]);
+    }
     const int px[3] = {170, 490, 310};
     const int py[3] = {150, 150, 350};
     for (int k = 0; k < 3; ++k) {
-        if (k + 1 >= lines.size()) {
+        const int src = order[k] + 1; // строки картинок 1..3
+        if (src >= lines.size()) {
             break;
         }
-        const QStringList qa = splitQ(lines[k + 1]);
+        const QStringList qa = splitQ(lines[src]);
         if (qa.value(1).isEmpty()) {
             continue;
         }

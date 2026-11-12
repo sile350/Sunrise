@@ -364,14 +364,18 @@ QPointF ExCanvas::toScene(const QPoint &p) const {
 
 void ExCanvas::paintEvent(QPaintEvent *) {
     QPainter p(this);
-    p.fillRect(rect(), m_patient ? QColor(249, 249, 249) : QColor(235, 235, 235));
+    // У пациента заливка всего виджета цветом сцены — без светлых полос по бокам при letterbox.
+    const QColor chrome = m_patient
+        ? (m_engine ? m_engine->background : QColor(249, 249, 249))
+        : QColor(235, 235, 235);
+    p.fillRect(rect(), chrome);
     if (!m_engine) {
         return;
     }
     const double s = scaleFactor();
     const QPointF o = originOffset();
     p.setRenderHint(QPainter::SmoothPixmapTransform, true);
-    p.setRenderHint(QPainter::Antialiasing, true);
+    p.setRenderHint(QPainter::TextAntialiasing, true);
     p.translate(o);
     p.scale(s, s);
     p.fillRect(QRect(QPoint(0, 0), m_engine->sceneSize), m_engine->background);

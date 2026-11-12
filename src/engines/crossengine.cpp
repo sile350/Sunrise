@@ -176,7 +176,8 @@ void CrossEngine::rebuild(int exercise) {
     userNowQuest.clear();
     wordOpen = 0;
     oneTry = 0;
-    background = QColor(245, 245, 245);
+    // Как фон экрана пациента — один цвет без «рамки» letterbox.
+    background = QColor(249, 249, 249);
     int n = exercise;
     while (n > 10) {
         n -= 10;
@@ -303,19 +304,19 @@ void CrossEngine::addClue(const QString &name, const QString &text, int localX, 
 void CrossEngine::addClues() {
     // В оригинале Labels qg/qv есть и у врача, и у пациента (fillTextQuestion) — клик пациента выбирает слово.
     const int h = addSprite();
-    sprites[h].setBox(QStringLiteral("По горизонтали"), 280, 28, 14, false, true);
+    sprites[h].setBox(QStringLiteral("По горизонтали"), 360, 36, kCluePointSize, false, true);
     sprites[h].x = kClueX + 20;
     sprites[h].y = kClueY + 8;
     sprites[h].name = QStringLiteral("hor");
 
-    int y = kClueY + 42;
+    int y = kClueY + sprites[h].h + 14;
     for (int i = 0; i < gClues.size() && i < 4; ++i) {
         addClue(QStringLiteral("qg") + QString::number(i + 1), gClues[i], 20, y - kClueY);
         y += sprites.last().h + 8;
     }
     y += 12;
     const int v = addSprite();
-    sprites[v].setBox(QStringLiteral("По вертикали"), 260, 28, 14, false, true);
+    sprites[v].setBox(QStringLiteral("По вертикали"), 340, 36, kCluePointSize, false, true);
     sprites[v].x = kClueX + 20;
     sprites[v].y = y;
     sprites[v].name = QStringLiteral("ver");

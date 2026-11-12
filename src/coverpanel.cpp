@@ -483,8 +483,9 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         addCounters(298, 67, 514, 67, false);
         break;
     case ExCoverKind::C523: {
-        label4 = makeLabel(QStringLiteral("Уровень сложности"), 285, -4, true, 10);
-        combo1 = makeCombo({QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3")}, 337, 20, 60, 24, 10);
+        // Чуть ниже оригинальных (−4 / 20), чтобы не прилипало к верхнему краю.
+        label4 = makeLabel(QStringLiteral("Уровень сложности"), 285, 18, true, 10);
+        combo1 = makeCombo({QStringLiteral("1"), QStringLiteral("2"), QStringLiteral("3")}, 337, 42, 60, 24, 10);
         begin(4, 4);
         next(755, 5);
         showp = makeButton(QStringLiteral("showp.png"), 755, 62);
