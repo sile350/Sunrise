@@ -89,6 +89,9 @@ private:
     QPoint m_anchor1;       // 5.2.2: слот первого слова (x/y после постановки)
     QPoint m_anchor2;
     QString m_answer;       // 5.1.5 имя картинки, 5.2.1 «1»..«3», 5.2.2 «r» или пусто
+    // 5.1.5: фиксированный порядок картинок на текущее задание (не менять при «Начать»).
+    int m_515Order[3] = {0, 1, 2};
+    int m_515OrderEx = -1;
     int m_lineMax = 0;
     int m_sortLeft = 0;
     int m_sortY = 0;

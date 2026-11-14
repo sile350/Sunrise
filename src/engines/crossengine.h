@@ -45,6 +45,9 @@ private:
     void setClueSelected(int index, bool on);
     void unselectAll();
     void paintWord(const QString &code, bool on);
+    void clearWordOutline();
+    void setWordOutline(const QRect &r);
+    bool cellInSelection(int cell) const;
     void revealCell(int cell);
     void openWord(const QString &quest);
     void markLetterOpened(int cell);
@@ -55,6 +58,7 @@ private:
     QStringList allQuestCodes() const;
 
     QHash<QString, WordState> m_wordState;
+    QVector<int> m_selectedCells;
     bool m_anyProgress = false;
 };
 

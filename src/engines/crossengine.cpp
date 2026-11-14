@@ -3,6 +3,7 @@
 #include <QFont>
 #include <QFontMetrics>
 #include <QPainter>
+#include <QPen>
 
 namespace {
 
@@ -342,7 +343,51 @@ void CrossEngine::setClueSelected(int index, bool on) {
     s.y = y;
 }
 
+void CrossEngine::clearWordOutline() {
+    m_selectedCells.clear();
+    const int oi = indexByName(QStringLiteral("wordOutline"));
+    if (oi >= 0) {
+        sprites[oi].visible = false;
+        sprites[oi].w = 0;
+        sprites[oi].h = 0;
+        sprites[oi].pix = QPixmap();
+    }
+}
+
+void CrossEngine::setWordOutline(const QRect &r) {
+    if (r.width() < 2 || r.height() < 2) {
+        clearWordOutline();
+        return;
+    }
+    int oi = indexByName(QStringLiteral("wordOutline"));
+    if (oi < 0) {
+        oi = addSprite();
+        sprites[oi].name = QStringLiteral("wordOutline");
+    }
+    ExSprite &o = sprites[oi];
+    o.x = r.x();
+    o.y = r.y();
+    o.w = r.width();
+    o.h = r.height();
+    o.visible = true;
+    o.isText = false;
+    o.border = false;
+    o.tint = kClear;
+    QPixmap pm(qMax(1, r.width()), qMax(1, r.height()));
+    pm.fill(Qt::transparent);
+    QPainter p(&pm);
+    p.setRenderHint(QPainter::Antialiasing, true);
+    QPen pen(QColor(0, 102, 255), 3);
+    pen.setJoinStyle(Qt::MiterJoin);
+    p.setPen(pen);
+    p.setBrush(Qt::NoBrush);
+    p.drawRect(QRectF(1.5, 1.5, r.width() - 3.0, r.height() - 3.0));
+    p.end();
+    o.pix = pm;
+}
+
 void CrossEngine::unselectAll() {
+    clearWordOutline();
     for (int i = 0; i < sprites.size(); ++i) {
         ExSprite &s = sprites[i];
         if (s.name == QLatin1String("cell")) {
@@ -367,29 +412,40 @@ QString CrossEngine::answer(const QString &code) const {
     return list.at(n - 1);
 }
 
+bool CrossEngine::cellInSelection(int cell) const {
+    return m_selectedCells.contains(cell);
+}
+
 void CrossEngine::paintWord(const QString &code, bool on) {
     const int marker = indexByName2(code);
     const QString word = answer(code);
     if (marker < 0 || word.isEmpty()) {
         return;
     }
+    if (!on) {
+        clearWordOutline();
+        return;
+    }
     const bool horiz = code.startsWith(QLatin1Char('g'));
     int x = sprites[marker].x + 10;
     int y = sprites[marker].y + 10;
+    m_selectedCells.clear();
+    QRect bounds;
     for (int i = 0; i < word.size(); ++i) {
         const int cell = cellAt(x, y);
         if (cell < 0) {
             break;
         }
-        // Только синяя обводка выбранного слова (без жёлтой заливки).
-        sprites[cell].tint = kClear;
-        sprites[cell].border = on;
+        m_selectedCells.append(cell);
+        const QRect cr(sprites[cell].x, sprites[cell].y, sprites[cell].w, sprites[cell].h);
+        bounds = bounds.isNull() ? cr : bounds.united(cr);
         if (horiz) {
             x += sprites[cell].w;
         } else {
             y += sprites[cell].h;
         }
     }
+    setWordOutline(bounds.adjusted(-1, -1, 1, 1));
 }
 
 void CrossEngine::selectQuestion(const QString &code) {
@@ -547,8 +603,8 @@ void CrossEngine::doctorClick(const QPoint &p, Qt::MouseButton button) {
         return;
     }
     const int cell = cellAt(p.x(), p.y());
-    // Открытие буквы/слова только если слово выбрано (ячейка с обводкой).
-    if (cell < 0 || !sprites[cell].border || userNowQuest.isEmpty()) {
+    // Открытие буквы/слова только если слово выбрано (клетка входит в обведённую область).
+    if (cell < 0 || userNowQuest.isEmpty() || !cellInSelection(cell)) {
         return;
     }
     if (button == Qt::RightButton) {

@@ -472,7 +472,7 @@ void ExerciseHost::layoutCover() {
     case ExCoverKind::C323: top = 200; break;
     case ExCoverKind::C324: top = 250; break;
     case ExCoverKind::C436: top = 100; break; // cw Top=100
-    case ExCoverKind::C514: top = 330; break; // ниже label1/button1/2
+    case ExCoverKind::C514: top = 175; break; // крупное зеркало для выбора частей врачом (как mn/mn2 на обложке)
     case ExCoverKind::C515:
     case ExCoverKind::C521:
     case ExCoverKind::C522: top = 150; break;
@@ -529,6 +529,17 @@ void ExerciseHost::wireCover() {
     } else {
         bind(c->explainBtn, &ExerciseHost::onShowp);
         bind(c->showStory, &ExerciseHost::onShowp);
+        // Руководство: клик по «Подписать» / «Укажите…» / названию части — выход в «Показать».
+        if (c->modePic) {
+            connect(c->modePic, &ImageButton::clicked, this, [this]() {
+                if (!m_cover || !m_cover->combo1) {
+                    return;
+                }
+                if (m_cover->combo1->currentText() == QLatin1String("Подписать")) {
+                    m_cover->combo1->setCurrentText(QStringLiteral("Показать"));
+                }
+            });
+        }
     }
     if (c->dcorrect) {
         connect(c->dcorrect, &ImageButton::clicked, this, [this]() {
@@ -819,6 +830,8 @@ void ExerciseHost::updateVisibility() {
         vis(c->combo1, !run);
         vis(c->nextz, oral);
         vis(c->bagain, run && oral);
+        vis(c->lcounter, oral);
+        vis(c->lcorrect, oral);
         vis(c->label1, !oral); // «Ответы для проверки…» в письменном
         vis(c->rtf, !oral);
         if (c->rtf && !oral) {
@@ -834,17 +847,20 @@ void ExerciseHost::updateVisibility() {
         break;
     }
     case ExCoverKind::C514: {
-        // Комбо режима остаётся доступным и во время выполнения — иначе нельзя сменить
-        // «Показать» → «Подписать» / «На себе» без остановки.
+        // Комбо режима доступно всегда (смена Показать/Подписать/На себе).
         const QString mode = c->combo1 ? c->combo1->currentText() : QStringLiteral("Показать");
         const bool sub = mode == QLatin1String("Подписать");
         const bool onSelf = mode == QLatin1String("На себе");
         vis(c->combo1, true);
-        vis(c->bagain, !onSelf);
-        vis(c->dcorrect, onSelf);
-        vis(c->dincorrect, onSelf);
+        vis(c->label1, true);
+        vis(c->bagain, run && !onSelf);
+        vis(c->dcorrect, run && onSelf);
+        vis(c->dincorrect, run && onSelf);
         vis(c->modePic, sub);
         vis(c->showp, sub);
+        if (c->mirror) {
+            c->mirror->setVisible(true);
+        }
         break;
     }
     case ExCoverKind::C515:

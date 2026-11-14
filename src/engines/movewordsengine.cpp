@@ -914,16 +914,21 @@ void MovewordsEngine::build515() {
         const int quest = addText(qa.value(0), 0, 100 * 2, 28, Qt::black, QStringLiteral("quest"));
         sprites[quest].setCenterX(1920);
     }
-    // Три слота; порядок картинок перемешиваем, чтобы верный ответ не всегда был в одном месте.
-    int order[3] = {0, 1, 2};
-    for (int i = 2; i > 0; --i) {
-        const int j = int(QRandomGenerator::global()->bounded(i + 1));
-        qSwap(order[i], order[j]);
+    // Порядок картинок задаём один раз на currentEx — до и после «Начать» раскладка та же.
+    if (m_515OrderEx != currentEx) {
+        m_515Order[0] = 0;
+        m_515Order[1] = 1;
+        m_515Order[2] = 2;
+        for (int i = 2; i > 0; --i) {
+            const int j = int(QRandomGenerator::global()->bounded(i + 1));
+            qSwap(m_515Order[i], m_515Order[j]);
+        }
+        m_515OrderEx = currentEx;
     }
     const int px[3] = {170, 490, 310};
     const int py[3] = {150, 150, 350};
     for (int k = 0; k < 3; ++k) {
-        const int src = order[k] + 1; // строки картинок 1..3
+        const int src = m_515Order[k] + 1; // строки картинок 1..3
         if (src >= lines.size()) {
             break;
         }

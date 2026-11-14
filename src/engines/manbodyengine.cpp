@@ -143,6 +143,12 @@ void ManBodyEngine::buildLabels() {
     // movingPictures (-80, 50) + pictureBox (48, 14); спрайт x=50, y с 40, шаг 60.
     constexpr int ox = -80 + 48;
     constexpr int oy = 50 + 14;
+    // Форма для размещения выбранной карточки-подписи (справа от колонки).
+    const int slot = addSprite();
+    sprites[slot].setImage(ExAssets::exnPath(QStringLiteral("5.1.4/chp.png")));
+    sprites[slot].x = ox + 50 + 220;
+    sprites[slot].y = oy + 40;
+    sprites[slot].name = QStringLiteral("labelSlot");
     int y = 40;
     const QStringList labels = labelNames();
     for (const QString &name : labels) {
@@ -269,7 +275,7 @@ int ManBodyEngine::partAt(const QPoint &p, bool *frontOut) const {
             const qint64 dy = p.y() - cy;
             return dx * dx + dy * dy;
         };
-        constexpr qint64 kMax = 120LL * 120LL;
+        constexpr qint64 kMax = 200LL * 200LL;
         qint64 bestDist = kMax + 1;
         auto consider = [&](const QVector<Part> &list, bool frontSide) {
             for (int i = 0; i < list.size(); ++i) {
@@ -332,12 +338,24 @@ void ManBodyEngine::doctorChoose(bool front, int part) {
     if (part < 0 || part >= list.size()) {
         return;
     }
+    // Повторный клик по той же части — снять выделение (руководство).
+    int &sel = front ? m_doctorFront : m_doctorBack;
+    if (sel == part) {
+        list[part].bD = false;
+        if (mode == QLatin1String("sub") || mode == QLatin1String("3")) {
+            list[part].bP = false;
+        }
+        sel = -1;
+        applyAll();
+        emit doctorSelectionChanged();
+        emit changed();
+        return;
+    }
     if (front && m_doctorBack >= 0) {
         clearDoctorSide(false);
     } else if (!front && m_doctorFront >= 0) {
         clearDoctorSide(true);
     }
-    int &sel = front ? m_doctorFront : m_doctorBack;
     if (sel >= 0 && sel < list.size()) {
         list[sel].bD = false;
         if (mode == QLatin1String("sub") || mode == QLatin1String("3")) {
@@ -346,6 +364,7 @@ void ManBodyEngine::doctorChoose(bool front, int part) {
     }
     sel = part;
     list[part].bD = true;
+    // «Показать»: выделение врача только у специалиста. «Подписать»/«На себе»: и у пациента.
     if (mode == QLatin1String("sub")) {
         clearPatientColors();
         list[part].bP = true;
@@ -365,7 +384,25 @@ void ManBodyEngine::patientChoose(bool front, int part) {
     if (part < 0 || part >= list.size()) {
         return;
     }
-    auto hidePrev = [this](bool side, int idx) {
+    // Повторный клик — снять выбор пациента.
+    const int cur = front ? m_patientFront : m_patientBack;
+    if (cur == part) {
+        list[part].bP = false;
+        // Не трогаем bD, если это одновременно выбор врача.
+        const int doc = front ? m_doctorFront : m_doctorBack;
+        if (part != doc) {
+            list[part].bD = false;
+        }
+        if (front) {
+            m_patientFront = -1;
+        } else {
+            m_patientBack = -1;
+        }
+        applyAll();
+        emit changed();
+        return;
+    }
+    auto hidePrevPatient = [this](bool side, int idx) {
         if (idx < 0) {
             return;
         }
@@ -374,16 +411,21 @@ void ManBodyEngine::patientChoose(bool front, int part) {
             return;
         }
         ps[idx].bP = false;
-        ps[idx].bD = false;
+        const int doc = side ? m_doctorFront : m_doctorBack;
+        // Не сбрасывать голубой врача, если пациент кликал по той же части.
+        if (idx != doc) {
+            ps[idx].bD = false;
+        }
     };
-    hidePrev(true, m_patientFront);
-    hidePrev(false, m_patientBack);
+    hidePrevPatient(true, m_patientFront);
+    hidePrevPatient(false, m_patientBack);
     m_patientFront = m_patientBack = -1;
     if (front) {
         m_patientFront = part;
     } else {
         m_patientBack = part;
     }
+    // Выбор пациента виден на обоих экранах.
     list[part].bP = true;
     list[part].bD = true;
     applyAll();
@@ -398,12 +440,34 @@ void ManBodyEngine::chooseLabel(const QString &name) {
     if (idx < 0) {
         return;
     }
+    const int slot = indexByName(QStringLiteral("labelSlot"));
+    // Вернуть предыдущую карточку на место в колонке.
+    if (!m_selectedLabel.isEmpty()) {
+        const int prev = labelIndex(m_selectedLabel);
+        if (prev >= 0) {
+            // Восстановить Y по порядку в списке.
+            const QStringList names = labelNames();
+            const int ord = names.indexOf(m_selectedLabel);
+            constexpr int ox = -80 + 48;
+            constexpr int oy = 50 + 14;
+            sprites[prev].x = ox + 50;
+            sprites[prev].y = oy + 40 + qMax(0, ord) * 60;
+            sprites[prev].tint = kClear;
+            sprites[prev].green = false;
+            sprites[prev].red = false;
+        }
+    }
     for (ExSprite &s : sprites) {
         if (s.name2 == QLatin1String("label")) {
             s.tint = kClear;
             s.green = false;
             s.red = false;
         }
+    }
+    // Перенести выбранную карточку в форму размещения.
+    if (slot >= 0) {
+        sprites[idx].x = sprites[slot].x;
+        sprites[idx].y = sprites[slot].y;
     }
     sprites[idx].tint = kLabelSelect;
     m_selectedLabel = sprites[idx].name;
@@ -441,6 +505,14 @@ void ManBodyEngine::submit() {
         return;
     }
     const bool sub = mode == QLatin1String("sub");
+    auto clearSelectionBlues = [this]() {
+        for (Part &p : m_front) {
+            p.bD = p.bP = false;
+        }
+        for (Part &p : m_back) {
+            p.bD = p.bP = false;
+        }
+    };
     if (!sub) {
         if (m_patientFront < 0 && m_patientBack < 0) {
             return;
@@ -448,6 +520,7 @@ void ManBodyEngine::submit() {
         if (m_doctorFront < 0 && m_doctorBack < 0) {
             return;
         }
+        clearSelectionBlues();
         if (m_doctorFront >= 0) {
             const bool ok = m_patientFront == m_doctorFront;
             if (ok) {
@@ -492,12 +565,12 @@ void ManBodyEngine::submit() {
     const bool front = m_doctorFront >= 0;
     const int part = front ? m_doctorFront : m_doctorBack;
     const QString expect = partName2(front, part);
+    // name2 с обложки — «Голова»/«голова»; карточки — «голова» (без регистра).
     const bool ok = m_selectedLabel.compare(expect, Qt::CaseInsensitive) == 0;
+    clearSelectionBlues();
     if (ok) {
         paintLabel(m_selectedLabel, kClear, true, false);
-        if (!front) {
-            showColor(false, part, QLatin1Char('g'));
-        }
+        showColor(front, part, QLatin1Char('g'));
         m_chipFile = ExAssets::exnPath(QStringLiteral("5.1.4/") +
                                         (front ? QStringLiteral("greencolor/") : QString()) + m_selectedLabel +
                                         QStringLiteral(".png"));
@@ -505,6 +578,15 @@ void ManBodyEngine::submit() {
         paintLabel(m_selectedLabel, kClear, false, true);
         paintLabel(expect, kLabelBlue, false, false);
         showColor(front, part, QLatin1Char('b'));
+        // Подсветить часть тела, соответствующую неверной карточке пациента.
+        for (bool side : {true, false}) {
+            const QVector<Part> &lst = side ? m_front : m_back;
+            for (int i = 0; i < lst.size(); ++i) {
+                if (lst[i].name2.compare(m_selectedLabel, Qt::CaseInsensitive) == 0) {
+                    showColor(side, i, QLatin1Char('r'));
+                }
+            }
+        }
         m_chipFile = ExAssets::exnPath(QStringLiteral("5.1.4/redcolor/") + m_selectedLabel + QStringLiteral(".png"));
     }
     applyAll();
