@@ -67,3 +67,12 @@
 392	4215	8163631173766446	CMakeFiles/sunrise.dir/src/exercisehost.cpp.obj	6be6e813d233d1c2
 394	4365	8163631173776211	CMakeFiles/sunrise.dir/src/engines/movewordsengine.cpp.obj	152a4dec50713524
 4365	7500	8163631213485796	sunrise.exe	a9fa24329d7db518
+19	482	8163639339983694	sunrise_autogen/timestamp	8f2c77479716071e
+19	482	8163639339983694	sunrise_autogen/mocs_compilation.cpp	8f2c77479716071e
+19	482	8163639339983694	D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/timestamp	8f2c77479716071e
+19	482	8163639339983694	D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/mocs_compilation.cpp	8f2c77479716071e
+487	2917	8163639340696514	CMakeFiles/sunrise.dir/src/engines/manbodyengine.cpp.obj	e957de12841f8546
+484	3146	8163639340667212	CMakeFiles/sunrise.dir/src/coverpanel.cpp.obj	149f4eeb8853249a
+482	3295	8163639340657473	CMakeFiles/sunrise.dir/sunrise_autogen/mocs_compilation.cpp.obj	1537703c01c690ad
+485	4131	8163639340686781	CMakeFiles/sunrise.dir/src/exercisehost.cpp.obj	6be6e813d233d1c2
+4131	6785	8163639377141840	sunrise.exe	a9fa24329d7db518

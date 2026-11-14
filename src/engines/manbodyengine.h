@@ -14,16 +14,21 @@ class ManBodyEngine : public ExEngine {
 public:
     explicit ManBodyEngine(QObject *parent = nullptr) : ExEngine(parent) {}
 
-    // "" — показать, "sub" — подписать, "3" — на себе. Задать до rebuild().
+    // "" — «Покажите…», "sub" — «Подпишите…» (по кнопке «Подписать», без селектора).
     QString mode;
+    // После клика «Подписать» без выбора: ждём указания части («Укажите часть тела»).
+    bool awaitingSignPart = false;
 
     void rebuild();
+    // Войти/выйти из режима подписи с сохранением выбора врача.
+    void setSignMode(bool on);
 
     int doctorFront() const { return m_doctorFront; }
     int doctorBack() const { return m_doctorBack; }
     int patientFront() const { return m_patientFront; }
     int patientBack() const { return m_patientBack; }
     QString selectedLabel() const { return m_selectedLabel; }
+    bool hasDoctorSelection() const { return m_doctorFront >= 0 || m_doctorBack >= 0; }
     int partCount(bool front) const { return (front ? m_front : m_back).size(); }
 
     // name2: ключ barray без хвостовой цифры («Голова1» → «Голова»).
@@ -34,12 +39,12 @@ public:
     void chooseLabel(const QString &name);
     void resetAllSelections();
 
-    // Кнопка «готово» пациента: режимы "" и "sub". Пишет resultRecorded через finishDone.
+    // Кнопка «готово» пациента: режимы "" и "sub".
     void submit();
-    // Кнопки «верно / неверно» обложки в режиме "3". Не блокирует сцену.
+    // «Верно»/«Неверно» для показа на себе (всегда доступны по руководству).
     void markManual(bool wrong);
 
-    // Картинки кнопок обложки (button1 — задание, button2 — ответ пациента).
+    // Картинки кнопок обложки (button1 — Подписать/Укажите/часть, button2 — выбор пациента).
     QString coverTaskImage() const;
     QString coverChipImage() const;
     bool graded() const { return m_graded; }

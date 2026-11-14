@@ -472,7 +472,7 @@ void ExerciseHost::layoutCover() {
     case ExCoverKind::C323: top = 200; break;
     case ExCoverKind::C324: top = 250; break;
     case ExCoverKind::C436: top = 100; break; // cw Top=100
-    case ExCoverKind::C514: top = 175; break; // крупное зеркало для выбора частей врачом (как mn/mn2 на обложке)
+    case ExCoverKind::C514: top = 185; break; // под кнопками «Подписать»/«Выбор пациента» (105/142)
     case ExCoverKind::C515:
     case ExCoverKind::C521:
     case ExCoverKind::C522: top = 150; break;
@@ -521,7 +521,7 @@ void ExerciseHost::wireCover() {
     if (c->updateR) {
         connect(c->updateR, &ImageButton::clicked, this, [this]() { applyParams(true); });
     }
-    // 5.1.4: modePic/showp = button1/button2 (картинки задания), не showp-тоггл.
+    // 5.1.4: modePic/showp = button1/button2 по руководству (не showp-тоггл).
     if (m_rt.coverKind != ExCoverKind::C514) {
         for (ImageButton *b : {c->showp, c->explainBtn, c->showStory}) {
             bind(b, &ExerciseHost::onShowp);
@@ -529,14 +529,21 @@ void ExerciseHost::wireCover() {
     } else {
         bind(c->explainBtn, &ExerciseHost::onShowp);
         bind(c->showStory, &ExerciseHost::onShowp);
-        // Руководство: клик по «Подписать» / «Укажите…» / названию части — выход в «Показать».
+        // «Подписать» ↔ «Укажите…»/название части (вход/выход из режима подписи).
         if (c->modePic) {
             connect(c->modePic, &ImageButton::clicked, this, [this]() {
-                if (!m_cover || !m_cover->combo1) {
+                if (!m_man) {
                     return;
                 }
-                if (m_cover->combo1->currentText() == QLatin1String("Подписать")) {
-                    m_cover->combo1->setCurrentText(QStringLiteral("Показать"));
+                if (m_man->mode == QLatin1String("sub") || m_man->awaitingSignPart) {
+                    m_man->setSignMode(false);
+                } else {
+                    m_man->setSignMode(true);
+                }
+                syncManCoverButtons();
+                updateVisibility();
+                if (m_running) {
+                    attachEngineToWindows();
                 }
             });
         }
@@ -847,16 +854,14 @@ void ExerciseHost::updateVisibility() {
         break;
     }
     case ExCoverKind::C514: {
-        // Комбо режима доступно всегда (смена Показать/Подписать/На себе).
-        const QString mode = c->combo1 ? c->combo1->currentText() : QStringLiteral("Показать");
-        const bool sub = mode == QLatin1String("Подписать");
-        const bool onSelf = mode == QLatin1String("На себе");
-        vis(c->combo1, true);
-        vis(c->label1, true);
-        vis(c->bagain, run && !onSelf);
-        vis(c->dcorrect, run && onSelf);
-        vis(c->dincorrect, run && onSelf);
-        vis(c->modePic, sub);
+        // Без селектора: «Подписать» и «Верно»/«Неверно» всегда; «Выбор пациента» — в режиме подписи.
+        const bool sub = m_man && m_man->mode == QLatin1String("sub");
+        vis(c->combo1, false);
+        vis(c->label1, false);
+        vis(c->bagain, run);
+        vis(c->dcorrect, true);
+        vis(c->dincorrect, true);
+        vis(c->modePic, true);
         vis(c->showp, sub);
         if (c->mirror) {
             c->mirror->setVisible(true);
@@ -994,16 +999,13 @@ void ExerciseHost::applyParams(bool fresh) {
         break;
     case ExCoverKind::C514:
         if (m_man) {
-            const QString t = c->combo1 ? c->combo1->currentText() : QStringLiteral("Показать");
-            if (t == QLatin1String("Подписать")) {
-                m_man->mode = QStringLiteral("sub");
-            } else if (t == QLatin1String("На себе")) {
-                m_man->mode = QStringLiteral("3");
-            } else {
+            if (fresh) {
                 m_man->mode.clear();
+                m_man->awaitingSignPart = false;
             }
             m_man->rebuild();
             syncManCoverButtons();
+            updateVisibility();
             attachEngineToWindows();
         }
         break;
@@ -1091,17 +1093,6 @@ void ExerciseHost::syncDoctorLabels() {
         c->taskLabel->setText(m_mw->taskText);
         c->explainLabel->setText(m_mw->explanationText);
     }
-    if (m_rt.coverKind == ExCoverKind::C514 && c->label1 && c->combo1) {
-        const QString t = c->combo1->currentText();
-        if (t == QLatin1String("Подписать")) {
-            c->label1->setText(QStringLiteral("Подпишите заданную часть тела"));
-        } else if (t == QLatin1String("На себе")) {
-            c->label1->setText(QStringLiteral(" Покажите заданную часть тела на себе"));
-        } else {
-            c->label1->setText(QStringLiteral("Покажите заданную часть тела"));
-        }
-        c->label1->adjustSize();
-    }
     updateCounters();
 }
 
@@ -1110,16 +1101,27 @@ void ExerciseHost::syncManCoverButtons() {
         return;
     }
     CoverPanel *c = m_cover;
-    // _514.Designer: Size 190×32, SizeMode StretchImage
     if (c->modePic) {
-        c->modePic->setGeometry(409, 225, 190, 32);
+        c->modePic->setGeometry(409, 105, 190, 32);
         c->modePic->setScaledContents(true);
+        c->modePic->setVisible(true);
         c->modePic->setImagePath(m_man->coverTaskImage());
+        c->modePic->raise();
     }
     if (c->showp) {
-        c->showp->setGeometry(409, 282, 190, 32);
+        c->showp->setGeometry(409, 142, 190, 32);
         c->showp->setScaledContents(true);
+        c->showp->setVisible(m_man->mode == QLatin1String("sub"));
         c->showp->setImagePath(m_man->coverChipImage());
+        c->showp->raise();
+    }
+    if (c->dcorrect) {
+        c->dcorrect->setVisible(true);
+        c->dcorrect->raise();
+    }
+    if (c->dincorrect) {
+        c->dincorrect->setVisible(true);
+        c->dincorrect->raise();
     }
 }
 

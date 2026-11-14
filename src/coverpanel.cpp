@@ -440,28 +440,33 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         break;
     }
     case ExCoverKind::C514: {
-        // _514: Показать / Подписать / На себе
+        // Руководство: без селектора Показать/Подписать/На себе.
+        // button1 «Подписать»/«Укажите…»/название; button2 «Выбор пациента»; Верно/Неверно всегда.
+        // Заголовок задания только в сцене упражнения (не label1 на обложке).
         begin(38, 11);
-        combo1 = makeCombo({QStringLiteral("Показать"), QStringLiteral("Подписать"), QStringLiteral("На себе")}, 270, 13, 121, 24, 10);
         again(847, 11);
         addCounters(450, 13, 635, 13, false);
         rightWrong(351, 73, 594, 73);
-        dcorrect->hide();
-        dincorrect->hide();
-        label1 = makeLabel(QStringLiteral("Покажите заданную часть тела"), 363, 157, false, 14);
-        // button1/button2: 190×32 StretchImage (_514.Designer)
+        // Над зеркалом (зеркало с Top≈185), иначе ExCanvas перекрывает кнопки.
         modePic = new ImageButton(this);
-        modePic->setGeometry(409, 225, 190, 32);
+        modePic->setGeometry(409, 105, 190, 32);
         modePic->setScaledContents(true);
         modePic->setImagePath(ExAssets::exnPath(QStringLiteral("5.1.4/sub.png")));
         modePic->setCursor(Qt::PointingHandCursor);
-        modePic->hide();
+        modePic->raise();
         showp = new ImageButton(this);
-        showp->setGeometry(409, 282, 190, 32);
+        showp->setGeometry(409, 142, 190, 32);
         showp->setScaledContents(true);
         showp->setImagePath(ExAssets::exnPath(QStringLiteral("5.1.4/chp.png")));
         showp->setCursor(Qt::PointingHandCursor);
         showp->hide();
+        showp->raise();
+        if (dcorrect) {
+            dcorrect->raise();
+        }
+        if (dincorrect) {
+            dincorrect->raise();
+        }
         break;
     }
     case ExCoverKind::C515:

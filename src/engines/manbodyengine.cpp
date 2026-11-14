@@ -40,12 +40,13 @@ QVector<Def> backDefs() {
             {QStringLiteral("спина2"), 149, 166}};
 }
 
-// mpictures initEx "5.1.4": закомментированные части в список не входят.
+// Карточки-подписи по руководству (все части с отдельными png в 5.1.4).
 QStringList labelNames() {
-    return QStringList{QStringLiteral("голова"),     QStringLiteral("грудь"),      QStringLiteral("живот"),
-                       QStringLiteral("леваянога"),  QStringLiteral("леваярука"),  QStringLiteral("левоеплечо"),
-                       QStringLiteral("праваянога"), QStringLiteral("праваярука"), QStringLiteral("правоеколено"),
-                       QStringLiteral("спина"),      QStringLiteral("шея")};
+    return QStringList{QStringLiteral("голова"),       QStringLiteral("шея"),         QStringLiteral("грудь"),
+                       QStringLiteral("живот"),        QStringLiteral("спина"),        QStringLiteral("праваярука"),
+                       QStringLiteral("леваярука"),    QStringLiteral("правыйлокоть"), QStringLiteral("левыйлокоть"),
+                       QStringLiteral("правоеплечо"),  QStringLiteral("левоеплечо"),   QStringLiteral("праваянога"),
+                       QStringLiteral("леваянога"),    QStringLiteral("правоеколено"), QStringLiteral("левоеколено")};
 }
 
 const QColor kLabelSelect(225, 249, 32, 150);
@@ -80,12 +81,11 @@ void ManBodyEngine::rebuild() {
     buildFigure(true, 310, 50);
     buildFigure(false, 1140, 50);
 
+    // Заголовок только в области упражнения (не дублируется на обложке специалиста).
     QString prompt = QStringLiteral("Покажите заданную часть тела");
     if (mode == QLatin1String("sub")) {
-        prompt = QStringLiteral("Подпишите заданную часть тела");
+        prompt = QStringLiteral("Подпишите выделенную часть тела");
         buildLabels();
-    } else if (mode == QLatin1String("3")) {
-        prompt = QStringLiteral("Покажите заданную часть тела на себе");
     }
     const int title = addSprite();
     sprites[title].setText(prompt, 22);
@@ -93,9 +93,45 @@ void ManBodyEngine::rebuild() {
     sprites[title].y = 3;
     sprites[title].setCenterX(sceneSize.width());
 
-    if (mode != QLatin1String("3")) {
-        addDoneButton(1620 - 17, 844 - 75);
+    addDoneButton(1620 - 17, 844 - 75);
+    emit changed();
+}
+
+void ManBodyEngine::setSignMode(bool on) {
+    const int df = m_doctorFront;
+    const int db = m_doctorBack;
+    if (on) {
+        if (df < 0 && db < 0) {
+            // «Подписать» без выбора → «Укажите часть тела», карточки ещё не показываем.
+            mode.clear();
+            awaitingSignPart = true;
+            emit doctorSelectionChanged();
+            emit changed();
+            return;
+        }
+        mode = QStringLiteral("sub");
+        awaitingSignPart = false;
+    } else {
+        // Выход: «Подписать», скрыть карточки/форму, заголовок «Покажите…», снять выделение у пациента.
+        mode.clear();
+        awaitingSignPart = false;
     }
+    rebuild();
+    if (df >= 0 && df < m_front.size()) {
+        m_doctorFront = df;
+        m_front[df].bD = true;
+        if (mode == QLatin1String("sub")) {
+            m_front[df].bP = true;
+        }
+    } else if (db >= 0 && db < m_back.size()) {
+        m_doctorBack = db;
+        m_back[db].bD = true;
+        if (mode == QLatin1String("sub")) {
+            m_back[db].bP = true;
+        }
+    }
+    applyAll();
+    emit doctorSelectionChanged();
     emit changed();
 }
 
@@ -141,14 +177,15 @@ void ManBodyEngine::buildFigure(bool front, int hostX, int hostY) {
 
 void ManBodyEngine::buildLabels() {
     // movingPictures (-80, 50) + pictureBox (48, 14); спрайт x=50, y с 40, шаг 60.
+    // Карточки и слот — только экран пациента (на зеркале специалиста не дублируем).
     constexpr int ox = -80 + 48;
     constexpr int oy = 50 + 14;
-    // Форма для размещения выбранной карточки-подписи (справа от колонки).
     const int slot = addSprite();
     sprites[slot].setImage(ExAssets::exnPath(QStringLiteral("5.1.4/chp.png")));
     sprites[slot].x = ox + 50 + 220;
     sprites[slot].y = oy + 40;
     sprites[slot].name = QStringLiteral("labelSlot");
+    sprites[slot].patientOnly = true;
     int y = 40;
     const QStringList labels = labelNames();
     for (const QString &name : labels) {
@@ -158,6 +195,7 @@ void ManBodyEngine::buildLabels() {
         sprites[i].y = oy + y;
         sprites[i].name = name;
         sprites[i].name2 = QStringLiteral("label");
+        sprites[i].patientOnly = true;
         y += 60;
     }
 }
@@ -196,7 +234,7 @@ void ManBodyEngine::clearFlags(Part &part) {
 
 void ManBodyEngine::clearDoctorSide(bool front) {
     QVector<Part> &list = front ? m_front : m_back;
-    const bool shared = mode == QLatin1String("sub") || mode == QLatin1String("3");
+    const bool shared = mode == QLatin1String("sub");
     for (Part &p : list) {
         p.bD = p.rD = p.gD = false;
         if (shared) {
@@ -342,7 +380,7 @@ void ManBodyEngine::doctorChoose(bool front, int part) {
     int &sel = front ? m_doctorFront : m_doctorBack;
     if (sel == part) {
         list[part].bD = false;
-        if (mode == QLatin1String("sub") || mode == QLatin1String("3")) {
+        if (mode == QLatin1String("sub")) {
             list[part].bP = false;
         }
         sel = -1;
@@ -358,20 +396,25 @@ void ManBodyEngine::doctorChoose(bool front, int part) {
     }
     if (sel >= 0 && sel < list.size()) {
         list[sel].bD = false;
-        if (mode == QLatin1String("sub") || mode == QLatin1String("3")) {
+        if (mode == QLatin1String("sub")) {
             list[sel].bP = false;
         }
     }
     sel = part;
     list[part].bD = true;
-    // «Показать»: выделение врача только у специалиста. «Подписать»/«На себе»: и у пациента.
+    // «Показать»: выделение только у специалиста. «Подписать»: и у пациента.
     if (mode == QLatin1String("sub")) {
         clearPatientColors();
         list[part].bP = true;
-    } else if (mode == QLatin1String("3")) {
-        list[part].bP = true;
     }
     applyAll();
+
+    // «Укажите часть тела» → при выборе части входим в режим подписи (карточки, форма, заголовок).
+    if (awaitingSignPart) {
+        setSignMode(true);
+        return;
+    }
+
     emit doctorSelectionChanged();
     emit changed();
 }
@@ -501,7 +544,7 @@ void ManBodyEngine::resetAllSelections() {
 }
 
 void ManBodyEngine::submit() {
-    if (block || mode == QLatin1String("3")) {
+    if (block) {
         return;
     }
     const bool sub = mode == QLatin1String("sub");
@@ -596,9 +639,7 @@ void ManBodyEngine::submit() {
 }
 
 void ManBodyEngine::markManual(bool wrong) {
-    if (mode != QLatin1String("3")) {
-        return;
-    }
+    // «Верно»/«Неверно» — учёт показа на себе (доступны всегда по руководству).
     if (wrong) {
         ExAssets::playIncorrect();
     } else {
@@ -608,13 +649,18 @@ void ManBodyEngine::markManual(bool wrong) {
 }
 
 QString ManBodyEngine::coverTaskImage() const {
-    if (m_doctorFront >= 0) {
-        return ExAssets::exnPath(QStringLiteral("5.1.4/") + partName2(true, m_doctorFront) + QStringLiteral(".png"));
+    // В режиме подписи с выбором — название части (файлы карточек в нижнем регистре);
+    // без выбора / «Укажите» — show.png; иначе «Подписать».
+    auto partChip = [this](bool front, int part) {
+        return ExAssets::exnPath(QStringLiteral("5.1.4/") + partName2(front, part).toLower() + QStringLiteral(".png"));
+    };
+    if (mode == QLatin1String("sub") && m_doctorFront >= 0) {
+        return partChip(true, m_doctorFront);
     }
-    if (m_doctorBack >= 0) {
-        return ExAssets::exnPath(QStringLiteral("5.1.4/") + partName2(false, m_doctorBack) + QStringLiteral(".png"));
+    if (mode == QLatin1String("sub") && m_doctorBack >= 0) {
+        return partChip(false, m_doctorBack);
     }
-    if (mode == QLatin1String("sub")) {
+    if (awaitingSignPart || mode == QLatin1String("sub")) {
         return ExAssets::exnPath(QStringLiteral("5.1.4/show.png"));
     }
     return ExAssets::exnPath(QStringLiteral("5.1.4/sub.png"));
@@ -647,9 +693,6 @@ void ManBodyEngine::patientRelease(const QPoint &p) {
         if (lab >= 0) {
             chooseLabel(sprites[lab].name);
         }
-        return;
-    }
-    if (mode == QLatin1String("3")) {
         return;
     }
     bool front = true;
