@@ -472,7 +472,7 @@ void ExerciseHost::layoutCover() {
     case ExCoverKind::C323: top = 200; break;
     case ExCoverKind::C324: top = 250; break;
     case ExCoverKind::C436: top = 100; break; // cw Top=100
-    case ExCoverKind::C514: top = 185; break; // под кнопками «Подписать»/«Выбор пациента» (105/142)
+    case ExCoverKind::C514: top = 175; break; // зеркало = область упражнения; кнопки центрируются поверх
     case ExCoverKind::C515:
     case ExCoverKind::C521:
     case ExCoverKind::C522: top = 150; break;
@@ -484,6 +484,9 @@ void ExerciseHost::layoutCover() {
     // _436: cw.Left=50; остальные зеркала — Left=10
     const int mirrorLeft = (m_rt.coverKind == ExCoverKind::C436) ? 50 : 10;
     m_cover->setMirrorGeometry(QRect(mirrorLeft, top, w, w * 9 / 16));
+    if (m_rt.coverKind == ExCoverKind::C514) {
+        syncManCoverButtons();
+    }
     if (m_leftScroll) {
         m_leftScroll->setGeometry(0, kTopBar, kLeftWidth, h);
     }
@@ -1101,17 +1104,26 @@ void ExerciseHost::syncManCoverButtons() {
         return;
     }
     CoverPanel *c = m_cover;
+    // «Подписать» / название части + «Выбор пациента» — по центру области упражнения (зеркало).
+    constexpr int bw = 190;
+    constexpr int bh = 32;
+    constexpr int gap = 14;
+    const bool sub = m_man->mode == QLatin1String("sub");
+    const QRect m = c->mirror ? c->mirror->geometry() : QRect(10, 175, 1000, 560);
+    const int stackH = sub ? (bh * 2 + gap) : bh;
+    const int x = m.x() + (m.width() - bw) / 2;
+    const int y0 = m.y() + (m.height() - stackH) / 2;
     if (c->modePic) {
-        c->modePic->setGeometry(409, 105, 190, 32);
+        c->modePic->setGeometry(x, y0, bw, bh);
         c->modePic->setScaledContents(true);
         c->modePic->setVisible(true);
         c->modePic->setImagePath(m_man->coverTaskImage());
         c->modePic->raise();
     }
     if (c->showp) {
-        c->showp->setGeometry(409, 142, 190, 32);
+        c->showp->setGeometry(x, y0 + bh + gap, bw, bh);
         c->showp->setScaledContents(true);
-        c->showp->setVisible(m_man->mode == QLatin1String("sub"));
+        c->showp->setVisible(sub);
         c->showp->setImagePath(m_man->coverChipImage());
         c->showp->raise();
     }

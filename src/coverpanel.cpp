@@ -447,15 +447,15 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         again(847, 11);
         addCounters(450, 13, 635, 13, false);
         rightWrong(351, 73, 594, 73);
-        // Над зеркалом (зеркало с Top≈185), иначе ExCanvas перекрывает кнопки.
+        // Позиции уточняет ExerciseHost::syncManCoverButtons (центр зеркала).
         modePic = new ImageButton(this);
-        modePic->setGeometry(409, 105, 190, 32);
+        modePic->setGeometry(415, 400, 190, 32);
         modePic->setScaledContents(true);
         modePic->setImagePath(ExAssets::exnPath(QStringLiteral("5.1.4/sub.png")));
         modePic->setCursor(Qt::PointingHandCursor);
         modePic->raise();
         showp = new ImageButton(this);
-        showp->setGeometry(409, 142, 190, 32);
+        showp->setGeometry(415, 446, 190, 32);
         showp->setScaledContents(true);
         showp->setImagePath(ExAssets::exnPath(QStringLiteral("5.1.4/chp.png")));
         showp->setCursor(Qt::PointingHandCursor);

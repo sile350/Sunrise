@@ -49,9 +49,15 @@ QStringList labelNames() {
                        QStringLiteral("леваянога"),    QStringLiteral("правоеколено"), QStringLiteral("левоеколено")};
 }
 
-const QColor kLabelSelect(225, 249, 32, 150);
 const QColor kLabelBlue(5, 181, 254, 150);
 const QColor kClear(0, 0, 0, 0);
+
+// Колонка карточек слева; слот размещения — по центру сцены (как форма «Выбор пациента»).
+constexpr int kLabelColX = -80 + 48 + 50;
+constexpr int kLabelColY0 = 50 + 14 + 40;
+constexpr int kLabelStep = 60;
+constexpr int kLabelSlotW = 270;
+constexpr int kLabelSlotH = 46;
 
 QString stripDigit(const QString &key) {
     if (!key.isEmpty() && key.back().isDigit()) {
@@ -176,27 +182,24 @@ void ManBodyEngine::buildFigure(bool front, int hostX, int hostY) {
 }
 
 void ManBodyEngine::buildLabels() {
-    // movingPictures (-80, 50) + pictureBox (48, 14); спрайт x=50, y с 40, шаг 60.
-    // Карточки и слот — только экран пациента (на зеркале специалиста не дублируем).
-    constexpr int ox = -80 + 48;
-    constexpr int oy = 50 + 14;
+    // Карточки слева; пустая форма размещения по центру сцены (без текста «Выбор пациента»).
     const int slot = addSprite();
-    sprites[slot].setImage(ExAssets::exnPath(QStringLiteral("5.1.4/chp.png")));
-    sprites[slot].x = ox + 50 + 220;
-    sprites[slot].y = oy + 40;
+    sprites[slot].setBox(QString(), kLabelSlotW, kLabelSlotH, 12, true);
+    sprites[slot].setCenterX(sceneSize.width());
+    sprites[slot].y = (sceneSize.height() - kLabelSlotH) / 2;
     sprites[slot].name = QStringLiteral("labelSlot");
     sprites[slot].patientOnly = true;
-    int y = 40;
+    int y = kLabelColY0;
     const QStringList labels = labelNames();
     for (const QString &name : labels) {
         const int i = addSprite();
         sprites[i].setImage(ExAssets::exnPath(QStringLiteral("5.1.4/") + name + QStringLiteral(".png")));
-        sprites[i].x = ox + 50;
-        sprites[i].y = oy + y;
+        sprites[i].x = kLabelColX;
+        sprites[i].y = y;
         sprites[i].name = name;
         sprites[i].name2 = QStringLiteral("label");
         sprites[i].patientOnly = true;
-        y += 60;
+        y += kLabelStep;
     }
 }
 
@@ -488,13 +491,10 @@ void ManBodyEngine::chooseLabel(const QString &name) {
     if (!m_selectedLabel.isEmpty()) {
         const int prev = labelIndex(m_selectedLabel);
         if (prev >= 0) {
-            // Восстановить Y по порядку в списке.
             const QStringList names = labelNames();
             const int ord = names.indexOf(m_selectedLabel);
-            constexpr int ox = -80 + 48;
-            constexpr int oy = 50 + 14;
-            sprites[prev].x = ox + 50;
-            sprites[prev].y = oy + 40 + qMax(0, ord) * 60;
+            sprites[prev].x = kLabelColX;
+            sprites[prev].y = kLabelColY0 + qMax(0, ord) * kLabelStep;
             sprites[prev].tint = kClear;
             sprites[prev].green = false;
             sprites[prev].red = false;
@@ -507,12 +507,11 @@ void ManBodyEngine::chooseLabel(const QString &name) {
             s.red = false;
         }
     }
-    // Перенести выбранную карточку в форму размещения.
+    // Перенести карточку в центральную форму (без жёлтой заливки).
     if (slot >= 0) {
-        sprites[idx].x = sprites[slot].x;
-        sprites[idx].y = sprites[slot].y;
+        sprites[idx].x = sprites[slot].x + (sprites[slot].w - sprites[idx].w) / 2;
+        sprites[idx].y = sprites[slot].y + (sprites[slot].h - sprites[idx].h) / 2;
     }
-    sprites[idx].tint = kLabelSelect;
     m_selectedLabel = sprites[idx].name;
     emit labelSelectionChanged(m_selectedLabel);
     emit changed();
