@@ -174,8 +174,8 @@ void CrossEngine::rebuild(int exercise) {
     clear();
     block = false;
     userNowQuest.clear();
-    wordOpen = 0;
-    oneTry = 0;
+    m_wordState.clear();
+    m_anyProgress = false;
     // Как фон экрана пациента — один цвет без «рамки» letterbox.
     background = QColor(249, 249, 249);
     int n = exercise;
@@ -347,6 +347,7 @@ void CrossEngine::unselectAll() {
         ExSprite &s = sprites[i];
         if (s.name == QLatin1String("cell")) {
             s.tint = kClear;
+            s.border = false;
         } else if (s.name.startsWith(QLatin1String("qg")) || s.name.startsWith(QLatin1String("qv"))) {
             setClueSelected(i, false);
         }
@@ -380,7 +381,9 @@ void CrossEngine::paintWord(const QString &code, bool on) {
         if (cell < 0) {
             break;
         }
-        sprites[cell].tint = on ? kSelect : kClear;
+        // Только синяя обводка выбранного слова (без жёлтой заливки).
+        sprites[cell].tint = kClear;
+        sprites[cell].border = on;
         if (horiz) {
             x += sprites[cell].w;
         } else {
@@ -397,11 +400,21 @@ void CrossEngine::selectQuestion(const QString &code) {
     if (indexByName(spriteName) < 0 || answer(code).isEmpty()) {
         return;
     }
+    // Уже полностью открытое слово снова не выбираем.
+    if (m_wordState.value(code, WordState::Untouched) == WordState::Opened) {
+        return;
+    }
     unselectAll();
     paintWord(code, true);
     setClueSelected(indexByName(spriteName), true);
     userNowQuest = code;
     emit changed();
+}
+
+bool CrossEngine::isLetterOpened(int cell) const {
+    const int letter = indexByName(QStringLiteral("incell") + QString::number(cell));
+    // Буква «открыта» пациенту, когда снято doctorOnly.
+    return letter >= 0 && !sprites[letter].doctorOnly;
 }
 
 void CrossEngine::revealCell(int cell) {
@@ -419,10 +432,33 @@ void CrossEngine::revealCell(int cell) {
     sprites[letter].visible = true;
 }
 
+void CrossEngine::markLetterOpened(int cell) {
+    if (userNowQuest.isEmpty()) {
+        return;
+    }
+    if (m_wordState.value(userNowQuest, WordState::Untouched) == WordState::Opened) {
+        return;
+    }
+    if (isLetterOpened(cell)) {
+        return;
+    }
+    revealCell(cell);
+    m_anyProgress = true;
+    // Первая подсказка-буква по слову: Выполнено +1, Верно не меняется.
+    if (m_wordState.value(userNowQuest, WordState::Untouched) == WordState::Untouched) {
+        m_wordState[userNowQuest] = WordState::Hinted;
+        emit resultRecorded(true);
+    }
+}
+
 void CrossEngine::openWord(const QString &quest) {
     const int marker = indexByName2(quest);
     const QString word = answer(quest);
     if (marker < 0 || word.isEmpty()) {
+        return;
+    }
+    const WordState prev = m_wordState.value(quest, WordState::Untouched);
+    if (prev == WordState::Opened) {
         return;
     }
     const bool horiz = quest.startsWith(QLatin1Char('g'));
@@ -440,7 +476,41 @@ void CrossEngine::openWord(const QString &quest) {
             y += sprites[cell].h;
         }
     }
+    m_anyProgress = true;
+    m_wordState[quest] = WordState::Opened;
+    // Без подсказок — верно; если уже были буквы-подсказки — только открываем, счётчик Верно не трогаем.
+    if (prev == WordState::Untouched) {
+        emit resultRecorded(false);
+    }
     unselectAll();
+    userNowQuest.clear();
+}
+
+QStringList CrossEngine::allQuestCodes() const {
+    QStringList codes;
+    for (int i = 0; i < gQuest.size(); ++i) {
+        codes.append(QLatin1Char('g') + QString::number(i + 1));
+    }
+    for (int i = 0; i < vQuest.size(); ++i) {
+        codes.append(QLatin1Char('v') + QString::number(i + 1));
+    }
+    return codes;
+}
+
+void CrossEngine::settleBeforeNext() {
+    // Если в кроссворде ничего не открывали — при смене задания штрафов нет.
+    if (!m_anyProgress) {
+        return;
+    }
+    for (const QString &code : allQuestCodes()) {
+        if (answer(code).isEmpty()) {
+            continue;
+        }
+        if (m_wordState.value(code, WordState::Untouched) != WordState::Opened) {
+            m_wordState[code] = WordState::Opened;
+            emit resultRecorded(true); // неоткрытое слово = выполнено неверно
+        }
+    }
 }
 
 int CrossEngine::cellAt(int px, int py) const {
@@ -453,35 +523,41 @@ int CrossEngine::cellAt(int px, int py) const {
     return -1;
 }
 
-void CrossEngine::patientRelease(const QPoint &p) {
-    ExEngine::patientRelease(p);
+bool CrossEngine::trySelectClueAt(const QPoint &p) {
     const int i = topAt(p, true);
     if (i < 0) {
-        return;
+        return false;
     }
     const QString &name = sprites[i].name;
     if (name.startsWith(QLatin1String("qg")) || name.startsWith(QLatin1String("qv"))) {
         selectQuestion(name.mid(1));
+        return true;
     }
+    return false;
+}
+
+void CrossEngine::patientRelease(const QPoint &p) {
+    ExEngine::patientRelease(p);
+    trySelectClueAt(p);
 }
 
 void CrossEngine::doctorClick(const QPoint &p, Qt::MouseButton button) {
+    // Выбор вопроса — ЛКМ по строке задания (и у специалиста, и у пациента).
+    if (button == Qt::LeftButton && trySelectClueAt(p)) {
+        return;
+    }
     const int cell = cellAt(p.x(), p.y());
-    if (cell < 0 || sprites[cell].tint.alpha() == 0) {
+    // Открытие буквы/слова только если слово выбрано (ячейка с обводкой).
+    if (cell < 0 || !sprites[cell].border || userNowQuest.isEmpty()) {
         return;
     }
     if (button == Qt::RightButton) {
-        if (userNowQuest.isEmpty()) {
-            return;
-        }
         openWord(userNowQuest);
-        ++wordOpen;
         emit changed();
         return;
     }
     if (button == Qt::LeftButton) {
-        revealCell(cell);
-        oneTry = 1;
+        markLetterOpened(cell);
         emit changed();
     }
 }

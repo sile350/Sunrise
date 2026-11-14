@@ -4131,6 +4131,7 @@ D:/projects/DokitLab/sunrise/src/patientwindow.h
  mdp:D:/projects/DokitLab/sunrise/src/patientwindow.h
 D:/projects/DokitLab/sunrise/src/engines/crossengine.h
  mmc:Q_OBJECT
+ mdp:D:/Qt/5.15.2/mingw81_64/include/QtCore/QHash
  mdp:D:/Qt/5.15.2/mingw81_64/include/QtCore/QObject
  mdp:D:/Qt/5.15.2/mingw81_64/include/QtCore/QPoint
  mdp:D:/Qt/5.15.2/mingw81_64/include/QtCore/QRect

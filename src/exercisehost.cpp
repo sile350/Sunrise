@@ -387,6 +387,7 @@ void ExerciseHost::buildEngines() {
     case ExEngineKind::Cross:
         m_cross = new CrossEngine(this);
         m_active = m_cross;
+        connect(m_cross, &CrossEngine::resultRecorded, this, &ExerciseHost::onResult);
         break;
     case ExEngineKind::ManBody:
         m_man = new ManBodyEngine(this);
@@ -1668,6 +1669,10 @@ void ExerciseHost::onNext() {
         ++m_ex;
         break;
     case ExCoverKind::C436:
+        // Руководство: если что-то открывали — незакрытые слова считаются неверно.
+        if (m_cross) {
+            m_cross->settleBeforeNext();
+        }
         ++m_ex;
         if (m_ex == 11) {
             m_ex = 1;

@@ -1,5 +1,6 @@
 D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/3EB3WRZEB7/moc_crossengine.cpp: D:/projects/DokitLab/sunrise/src/engines/crossengine.h \
   D:/projects/DokitLab/sunrise/build/Desktop_Qt_5_15_2_MinGW_64_bit-Release/sunrise_autogen/moc_predefs.h \
+  D:/Qt/5.15.2/mingw81_64/include/QtCore/QHash \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QObject \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QPoint \
   D:/Qt/5.15.2/mingw81_64/include/QtCore/QRect \

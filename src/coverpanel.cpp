@@ -430,6 +430,8 @@ void CoverPanel::buildFor(ExCoverKind kind) {
         begin(3, 3);
         next(723, 2);
         again(723, 63);
+        // Счётчики по руководству (открытие слова/буквы, штраф при «Следующее»).
+        addCounters(400, 8, 560, 8, false);
         label1 = makeLabel(QStringLiteral("Ответы для проверки кроссвордов"), 305, 107, false, 14);
         label1->hide();
         rtf = new QTextEdit(this);
