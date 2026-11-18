@@ -61,6 +61,7 @@ private:
     QVector<int> m_selectedCells;
     bool m_anyProgress = false;
     int m_clueX = 997; // сдвигается вправо, если увеличенная сетка подходит к вопросам
+    int m_clueY = 205; // выравнивается по вертикали вместе с сеткой
 };
 
 #endif

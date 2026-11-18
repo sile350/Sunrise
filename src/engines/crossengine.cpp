@@ -209,6 +209,9 @@ void CrossEngine::buildGrid() {
         ExAssets::exnPath(dir + QStringLiteral("data") + QString::number(currentEx) + QStringLiteral(".txt")));
     int y = 10 * kGridScale / 100;
     int gridRight = kGridX;
+    int gridTop = sceneSize.height();
+    int gridBottom = 0;
+    QVector<int> cellIdx;
     for (const QString &row : rows) {
         const QStringList cols = row.split(QLatin1Char(';'));
         int x = 100 * kGridScale / 100;
@@ -225,10 +228,31 @@ void CrossEngine::buildGrid() {
                     sprites[i].name2 = token;
                 }
                 gridRight = qMax(gridRight, sprites[i].x + sprites[i].w);
+                gridTop = qMin(gridTop, sprites[i].y);
+                gridBottom = qMax(gridBottom, sprites[i].y + sprites[i].h);
+                cellIdx.append(i);
             }
             x += stepX;
         }
         y += stepY;
+    }
+    // Вертикально по центру сцены (высокий №2 не уходит за нижнюю границу).
+    if (!cellIdx.isEmpty() && gridTop < gridBottom) {
+        constexpr int kMargin = 36;
+        const int avail = sceneSize.height() - kMargin * 2;
+        const int gridH = gridBottom - gridTop;
+        const int targetTop = kMargin + qMax(0, (avail - gridH) / 2);
+        const int dy = targetTop - gridTop;
+        if (dy != 0) {
+            for (int i : cellIdx) {
+                sprites[i].y += dy;
+            }
+            gridTop += dy;
+            gridBottom += dy;
+        }
+        m_clueY = gridTop;
+    } else {
+        m_clueY = kClueY;
     }
     // Вопросы справа от сетки с запасом, чтобы крупный кроссворд (№5) не наезжал на текст.
     m_clueX = qMax(kClueXBase, gridRight + 28);
@@ -305,7 +329,7 @@ void CrossEngine::addClue(const QString &name, const QString &text, int localX, 
     sprites[i].h = sprites[i].pix.height();
     sprites[i].isText = true;
     sprites[i].x = m_clueX + localX;
-    sprites[i].y = kClueY + localY;
+    sprites[i].y = m_clueY + localY;
     sprites[i].name = name;
 }
 
@@ -314,12 +338,12 @@ void CrossEngine::addClues() {
     const int h = addSprite();
     sprites[h].setBox(QStringLiteral("По горизонтали"), 360, 36, kCluePointSize, false, true);
     sprites[h].x = m_clueX + 20;
-    sprites[h].y = kClueY + 8;
+    sprites[h].y = m_clueY + 8;
     sprites[h].name = QStringLiteral("hor");
 
-    int y = kClueY + sprites[h].h + 14;
+    int y = m_clueY + sprites[h].h + 14;
     for (int i = 0; i < gClues.size() && i < 4; ++i) {
-        addClue(QStringLiteral("qg") + QString::number(i + 1), gClues[i], 20, y - kClueY);
+        addClue(QStringLiteral("qg") + QString::number(i + 1), gClues[i], 20, y - m_clueY);
         y += sprites.last().h + 8;
     }
     y += 12;
@@ -330,7 +354,7 @@ void CrossEngine::addClues() {
     sprites[v].name = QStringLiteral("ver");
     y += sprites[v].h + 10;
     for (int i = 0; i < vClues.size() && i < 4; ++i) {
-        addClue(QStringLiteral("qv") + QString::number(i + 1), vClues[i], 20, y - kClueY);
+        addClue(QStringLiteral("qv") + QString::number(i + 1), vClues[i], 20, y - m_clueY);
         y += sprites.last().h + 8;
     }
 }
