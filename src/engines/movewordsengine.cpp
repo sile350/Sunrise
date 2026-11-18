@@ -938,7 +938,9 @@ void MovewordsEngine::build515() {
         }
         const int i = addImage(dataPath(qa.value(1) + QStringLiteral(".png")), px[k] * 2, py[k] * 2, qa.value(1));
         if (qa.value(1).compare(m_answer, Qt::CaseInsensitive) == 0) {
-            sprites[i].dborder = true; // рамка-подсказка только на зеркале врача
+            // Правильный ответ: зелёная пунктирная рамка только у специалиста; задание видно на обоих экранах.
+            sprites[i].dborder = true;
+            sprites[i].dborderColor = QColor(0, 180, 0);
         }
     }
     addDoneButton(1590, 750);

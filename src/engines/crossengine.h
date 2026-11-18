@@ -60,6 +60,7 @@ private:
     QHash<QString, WordState> m_wordState;
     QVector<int> m_selectedCells;
     bool m_anyProgress = false;
+    int m_clueX = 997; // сдвигается вправо, если увеличенная сетка подходит к вопросам
 };
 
 #endif

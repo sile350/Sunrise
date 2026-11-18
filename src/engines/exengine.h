@@ -39,6 +39,7 @@ struct ExSprite {
     bool visible = true;
     bool border = false;       // выбор пациента — синяя рамка (видна на обоих экранах)
     bool dborder = false;      // подсказка врача — видна только врачу
+    QColor dborderColor = QColor(255, 140, 0); // цвет пунктирной рамки врача (по умолчанию оранжевый)
     bool green = false;
     bool red = false;
     bool doctorOnly = false;   // видно только врачу (otv, hint)

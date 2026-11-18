@@ -11,8 +11,10 @@ namespace {
 constexpr int kGridX = 10 + 19;
 constexpr int kGridY = 200 + 14;
 // initEx: panel1.Left = pictureBox.Left + Width + 10 = 987, Top = 5.
-constexpr int kClueX = 10 + 987;
+constexpr int kClueXBase = 10 + 987;
 constexpr int kClueY = 200 + 5;
+// Увеличение сетки ~×1.5 на экране специалиста/пациента (самый широкий — №5 — не заходит на вопросы).
+constexpr int kGridScale = 150;
 
 const QColor kLetter(102, 255, 153);
 const QColor kSelect(238, 237, 133, 121);
@@ -198,33 +200,38 @@ void CrossEngine::rebuild(int exercise) {
 void CrossEngine::buildGrid() {
     const QString dir = QStringLiteral("4.3.6/");
     const QPixmap sample = ExAssets::pixmap(ExAssets::exnPath(dir + QStringLiteral("cell.png")));
-    const int cW = sample.width();
-    const int cH = sample.height();
-    if (cW < 2 || cH < 2) {
+    if (sample.width() < 2 || sample.height() < 2) {
         return;
     }
+    const int stepX = sample.width() * kGridScale / 100 - 2;
+    const int stepY = sample.height() * kGridScale / 100 - 2;
     const QStringList rows = ExAssets::readLines(
         ExAssets::exnPath(dir + QStringLiteral("data") + QString::number(currentEx) + QStringLiteral(".txt")));
-    int y = 10;
+    int y = 10 * kGridScale / 100;
+    int gridRight = kGridX;
     for (const QString &row : rows) {
         const QStringList cols = row.split(QLatin1Char(';'));
-        int x = 100;
+        int x = 100 * kGridScale / 100;
         for (const QString &token : cols) {
             if (token != QLatin1String("_") && !token.isEmpty()) {
                 const int i = addSprite();
                 const bool blank = token == QLatin1String("0");
-                sprites[i].setImage(ExAssets::exnPath(dir + (blank ? QStringLiteral("cell") : token) + QStringLiteral(".png")));
+                sprites[i].setImage(ExAssets::exnPath(dir + (blank ? QStringLiteral("cell") : token) + QStringLiteral(".png")),
+                                    kGridScale);
                 sprites[i].x = kGridX + x;
                 sprites[i].y = kGridY + y;
                 sprites[i].name = QStringLiteral("cell");
                 if (!blank) {
                     sprites[i].name2 = token;
                 }
+                gridRight = qMax(gridRight, sprites[i].x + sprites[i].w);
             }
-            x += cW - 2;
+            x += stepX;
         }
-        y += cH - 2;
+        y += stepY;
     }
+    // Вопросы справа от сетки с запасом, чтобы крупный кроссворд (№5) не наезжал на текст.
+    m_clueX = qMax(kClueXBase, gridRight + 28);
 }
 
 void CrossEngine::placeHorizontal(const QStringList &words, const QString &prefix) {
@@ -297,7 +304,7 @@ void CrossEngine::addClue(const QString &name, const QString &text, int localX, 
     sprites[i].w = sprites[i].pix.width();
     sprites[i].h = sprites[i].pix.height();
     sprites[i].isText = true;
-    sprites[i].x = kClueX + localX;
+    sprites[i].x = m_clueX + localX;
     sprites[i].y = kClueY + localY;
     sprites[i].name = name;
 }
@@ -306,7 +313,7 @@ void CrossEngine::addClues() {
     // В оригинале Labels qg/qv есть и у врача, и у пациента (fillTextQuestion) — клик пациента выбирает слово.
     const int h = addSprite();
     sprites[h].setBox(QStringLiteral("По горизонтали"), 360, 36, kCluePointSize, false, true);
-    sprites[h].x = kClueX + 20;
+    sprites[h].x = m_clueX + 20;
     sprites[h].y = kClueY + 8;
     sprites[h].name = QStringLiteral("hor");
 
@@ -318,7 +325,7 @@ void CrossEngine::addClues() {
     y += 12;
     const int v = addSprite();
     sprites[v].setBox(QStringLiteral("По вертикали"), 340, 36, kCluePointSize, false, true);
-    sprites[v].x = kClueX + 20;
+    sprites[v].x = m_clueX + 20;
     sprites[v].y = y;
     sprites[v].name = QStringLiteral("ver");
     y += sprites[v].h + 10;

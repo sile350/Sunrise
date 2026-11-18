@@ -415,7 +415,7 @@ void ExCanvas::paintEvent(QPaintEvent *) {
             p.drawRect(r.adjusted(3, 3, -3, -3));
         }
         if (!m_patient && sp.dborder) {
-            QPen pen(QColor(255, 140, 0), 8, Qt::DashLine);
+            QPen pen(sp.dborderColor.isValid() ? sp.dborderColor : QColor(255, 140, 0), 8, Qt::DashLine);
             p.setPen(pen);
             p.setBrush(Qt::NoBrush);
             p.drawRect(r.adjusted(3, 3, -3, -3));

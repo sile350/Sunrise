@@ -343,6 +343,7 @@ void ExerciseHost::updateScoreBlock() {
     case ExCoverKind::C122: filled = m_cover->combo1->currentIndex() != 0 ? 1 : 0; break;
     case ExCoverKind::C324: filled = m_cover->combo1->currentIndex() == 1 ? 1 : 0; break;
     case ExCoverKind::C226: filled = m_cover->combo1->currentIndex() == 1 ? 0 : 1; break;
+    case ExCoverKind::C436: filled = m_cover->combo1 && m_cover->combo1->currentIndex() == 1 ? 1 : 0; break;
     default: return;
     }
     if (filled == m_scoreMode) {
@@ -1939,8 +1940,10 @@ bool ExerciseHost::buildProtocolRow(FormedRow *out) const {
         row.first = ExProtocol::escape(combo1);
         out->forceNew = true;
     } else if (u == QLatin1String("4.3.6")) {
-        // оригинал: баллы почти всегда &nbsp; (мертвый 1==2); если врач отметил radio — пишем
-        score = blsAbove(0);
+        // Устно — авто по %; Письменно — радиокнопки «Количество баллов».
+        const QString crossBands = QStringLiteral("81|100|3;61|80|2;41|60|1;21|40|0;0|20|-1");
+        score = combo1 == QStringLiteral("Устно") ? ExProtocol::calculateBls(crossBands, m_ecorrect, m_ecounter)
+                                                  : blsAbove(-2);
         out->header = QStringLiteral("4.3.6/header.html");
         out->forceNew = true;
     } else if (u == QLatin1String("5.1.4") || u == QLatin1String("5.1.5") || u == QLatin1String("5.2.1")) {
@@ -1948,11 +1951,7 @@ bool ExerciseHost::buildProtocolRow(FormedRow *out) const {
         out->forceNew = true;
     } else if (u == QLatin1String("5.2.2")) {
         score = bands(bandsMinus);
-        r.firstColumn = QStringLiteral("Сюжет");
-        r.hasMaxRow = true;
-        r.resultIsCopy = true;
-        r.result = nb2;
-        resultFromScore = false;
+        r.firstColumn = QStringLiteral("Опора на");
         row.first = combo1 == QLatin1String("2") ? QStringLiteral("На картинку") : QStringLiteral("На фразу");
     } else if (u == QLatin1String("5.2.3")) {
         int v = bands(bandsMinus).toInt();
