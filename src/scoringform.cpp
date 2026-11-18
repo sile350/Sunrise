@@ -28,6 +28,16 @@ const char *const kStandardScoreBlock =
     "<input type='radio' id='idch4' name='n1'  value='0'  /><strong>0 баллов</strong> (пациент выполнил меньшую часть заданий, имеются неединичные ошибки, необходима посторонняя помощь)<br>"
     "<input type='radio' id='idch5' name='n1'  value='-1'  /><strong>-1 балл</strong> (пациент не справляется с заданиями, помощь малоэффективна)<br><br>   ";
 
+// 4.3.6: подзаголовок курсивом по центру.
+const char *const kCrossWrittenScoreBlock =
+    "<div align='center'><strong>Количество баллов:</strong></div>"
+    "<div align='center'><em>(только при выборе в меню варианта «Письменно»)</em></div>"
+    "<input type='radio' id='idch1' name='n1' value='3'  /><strong>3 балла</strong> (пациент выполнил все задания уверенно и за адекватный период времени)<br>"
+    "<input type='radio' id='idch2' name='n1'  value='2'  /><strong>2 балла </strong> (пациент выполнил все задания неуверенно и/или с задержками)<br>"
+    "<input type='radio' id='idch3' name='n1'  value='1'  /><strong>1 балл</strong> (пациент выполнил большую часть заданий)<br>"
+    "<input type='radio' id='idch4' name='n1'  value='0'  /><strong>0 баллов</strong> (пациент выполнил меньшую часть заданий, имеются неединичные ошибки, необходима посторонняя помощь)<br>"
+    "<input type='radio' id='idch5' name='n1'  value='-1'  /><strong>-1 балл</strong> (пациент не справляется с заданиями, помощь малоэффективна)<br><br>   ";
+
 // QLabel с переносом слов берёт высоту sizeHint для узкой ширины, и строки формы расползаются.
 class WrapLabel : public QLabel {
 public:
@@ -159,7 +169,7 @@ void ScoringForm::load(const QString &formHtml) {
     buildInto(m_layout, formHtml.mid(afterEnd), false);
 }
 
-void ScoringForm::setScoreBlock(bool filled) {
+void ScoringForm::setScoreBlock(bool filled, bool crossWrittenNote) {
     if (!m_vz) {
         return;
     }
@@ -170,7 +180,7 @@ void ScoringForm::setScoreBlock(bool filled) {
         }
     }
     if (filled) {
-        buildInto(m_vzLayout, QString::fromUtf8(kStandardScoreBlock), true);
+        buildInto(m_vzLayout, QString::fromUtf8(crossWrittenNote ? kCrossWrittenScoreBlock : kStandardScoreBlock), true);
     }
     m_vz->setVisible(filled);
 }

@@ -18,8 +18,9 @@ public:
 
     void load(const QString &formHtml);
     bool hasScoreBlock() const { return m_vz != nullptr; }
-    // _122/_226/_324: idvz.InnerHtml = стандартные «Количество баллов» или "".
-    void setScoreBlock(bool filled);
+    // _122/_226/_324/4.3.6: idvz = «Количество баллов» или "".
+    // crossWrittenNote — подзаголовок «(только при выборе… Письменно)» для кроссвордов.
+    void setScoreBlock(bool filled, bool crossWrittenNote = false);
 
     int checkedScore(bool *ok) const;
     QString activityHtml() const;

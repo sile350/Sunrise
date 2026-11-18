@@ -353,7 +353,7 @@ void ExerciseHost::updateScoreBlock() {
     const bool keepInitial = m_scoreMode < 0 && filled == 1 && m_rt.coverKind == ExCoverKind::C226;
     m_scoreMode = filled;
     if (!keepInitial) {
-        m_form->setScoreBlock(filled == 1);
+        m_form->setScoreBlock(filled == 1, m_rt.coverKind == ExCoverKind::C436);
     }
     refreshLeftSizes();
 }
